@@ -416,7 +416,7 @@ MAX_LENGTH = 20
 
 def test_parser(parser, test_trees):
     evaluator = EnglishPennTreebankParseEvaluator.LabeledConstituentEval(
-            ["ROOT"], set(["''", "``", ".", ":", ","]))
+            ['ROOT'], set(["''", "``", ".", ":", ","]))
     for test_tree in test_trees:
         test_sentence = test_tree.get_yield()
         if len(test_sentence) > 20:
@@ -484,8 +484,8 @@ if __name__ == '__main__':
         test_trees = read_trees(base_path, 4, 4)
         print "done."
 
-    if data_set == "masc":
-        base_path += "parser/"
+    if data_set == 'masc':
+        base_path += 'parser/'
 
         # training data: MASC train
         print "Loading MASC training trees... from: %smasc/train" % base_path

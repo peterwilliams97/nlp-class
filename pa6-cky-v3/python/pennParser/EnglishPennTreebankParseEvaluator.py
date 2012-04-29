@@ -13,7 +13,7 @@ import ling.Trees as Trees
 class AbstractEval:
 
     def __init__(self):
-        self.string = ""
+        self.string = ''
         self.exact = 0
         self.total = 0
         self.correct_events = 0
@@ -28,10 +28,11 @@ class AbstractEval:
         """
         guessed_set = self.make_objects(guess)
         gold_set = self.make_objects(gold)
-        gold_set = self.make_objects(gold)
+        gold_set = self.make_objects(gold) # Seems redundant
         correct_set = set()
         correct_set.update(gold_set)
         correct_set.intersection_update(guessed_set)
+        # correct_set = gold_set & guessed_set
 
         self.correct_events += len(correct_set)
         self.guessed_events += len(guessed_set)
@@ -44,7 +45,7 @@ class AbstractEval:
             current_exact = 1
         self.total += 1
 
-        return self.display_prf(self.string + " [Current] ", len(correct_set),
+        return self.display_prf(self.string + ' [Current] ', len(correct_set),
                 len(guessed_set), len(gold_set), current_exact, 1)
 
     def display_prf(self, pre_str, correct, guessed, gold, exact, total):
@@ -55,13 +56,13 @@ class AbstractEval:
                 if precision > 0.0 and recall > 0.0 else 0.0
         exact_match = exact / float(total)
 
-        print "%s   P: %5.2f   R: %5.2f   F1: %5.2f   EX: %5.2f" % \
+        print '%s   P: %5.2f   R: %5.2f   F1: %5.2f   EX: %5.2f' % \
                 (pre_str, 100.0 * precision, 100.0 * recall, 100.0 * f1,
                         100.0 * exact_match)
         return 100.0 * f1
 
     def display(self, verbose):
-        return self.display_prf(self.string + " [Average] ", self.correct_events,
+        return self.display_prf(self.string + ' [Average] ', self.correct_events,
                 self.guessed_events, self.gold_events, self.exact,
                 self.total)
 
