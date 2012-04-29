@@ -76,8 +76,8 @@ def get_unigram_counts(data):
     """
     counts = {}
     for words in data:
-        for w in words:
-            inc(counts, w)
+        for i in range(0, len(words)):
+            inc(counts, (words[i]))
     return counts
 
 def get_bigram_counts(data):
