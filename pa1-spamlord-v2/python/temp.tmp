@@ -1,0 +1,8 @@
+('siroker', 'cs.stanford', 'edu')
+('widom', 'cs.stanford', 'edu')
+[('..\\data\\dev\\widom', 'e', 'siroker@cs.stanford.edu'), ('..\\data\\dev\\widom', 'e', 'widom@cs.stanford.edu'), ('..\\data\\dev\\widom', 'p', '650-723-7690'), ('..\\data\\dev\\widom', 'p', '650-725-2588'), ('..\\data\\dev\\widom', 'p', '650-723-0872')]
+         widom@cs.stanford.edu : ('..\\data\\dev\\widom', 'e')
+                  650-725-2588 : ('..\\data\\dev\\widom', 'p')
+                  650-723-7690 : ('..\\data\\dev\\widom', 'p')
+                  650-723-0872 : ('..\\data\\dev\\widom', 'p')
+       siroker@cs.stanford.edu : ('..\\data\\dev\\widom', 'e')

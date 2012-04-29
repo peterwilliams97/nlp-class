@@ -1,0 +1,404 @@
+1	S2
+7	S2	_CC
+4	S2	_CD
+2	S2	_DT
+18	S2	_Det
+28	S2	_EOS
+1	S2	_EXPLETIVE
+5	S2	_IN
+5	S2	_JJ
+1	S2	_JJC
+1	S2	_JJS
+7	S2	_MD
+5	S2	_NNS
+2	S2	_NOT
+16	S2	_Noun
+5	S2	_PAUSE
+1	S2	_PAUSE2 
+1	S2	_POSSESSIVE
+10	S2	_PRP
+3	S2	_PRP$
+10	S2	_Prep
+25	S2	_Proper
+7	S2	_Proper2
+1	S2	_ProperS
+4	S2	_RB
+5	S2	_TO
+18	S2	_VB
+10	S2	_VBD
+6	S2	_VBG
+8	S2	_VBN
+21	S2	_VBP
+9	S2	_VBZ
+8	S2	_VerbT
+6	S2	_WHD
+1	S2	_WHPP
+5	S2	_WP
+3	S2	_WRB
+1	_CC	CC
+50	_CC	CC _Proper
+60	_CC	CC Proper _CC
+60	_CC	CC Proper _MD
+60	_CC	CC Proper _VB
+60	_CC	CC Proper _VBP
+120	_CC	CC Proper _VBZ
+10	_CC	CC _VBD
+60	_CC	CC VBD _Prep
+1	_CD	CD
+30	_CD	CD _NNS
+60	_CD	CD NNS _EOS
+60	_CD	CD NNS _PAUSE
+60	_CD	CD NNS _VBP
+1	_DT	DT
+10	_DT	DT _Proper
+60	_DT	DT Proper _VBZ
+1	_Det	Det
+10	_Det	Det _Det
+60	_Det	Det Det _Noun
+30	_Det	Det _JJ
+180	_Det	Det JJ _Noun
+100	_Det	Det _Noun
+60	_Det	Det Noun _Det
+300	_Det	Det Noun _EOS
+60	_Det	Det Noun _IN
+60	_Det	Det Noun _Prep
+60	_Det	Det Noun _VB
+60	_Det	Det Noun _VBD
+60	_Det	Det Noun _VerbT
+60	_Det	Det Noun _WHD
+20	_Det	Det _Proper2
+60	_Det	Det Proper2 _EOS
+60	_Det	Det Proper2 _VBD
+10	_Det	Det _VBD
+60	_Det	Det VBD _PRP$
+1	_EOS	EOS
+1	_EXPLETIVE	EXPLETIVE
+1	_IN	IN
+10	_IN	IN _Det
+60	_IN	IN Det _Noun
+10	_IN	IN _Noun
+60	_IN	IN Noun _EOS
+10	_IN	IN _PRP
+60	_IN	IN PRP _VB
+60	_IN	IN PRP _VBP
+10	_IN	IN _VBD
+60	_IN	IN VBD _PRP$
+1	_JJ	JJ
+10	_JJ	JJ _EOS
+30	_JJ	JJ _Noun
+180	_JJ	JJ Noun _EOS
+1	_JJC	JJC
+1	_JJS	JJS
+1	_MD	MD
+60	_MD	MD _VB
+60	_MD	MD VB _EOS
+60	_MD	MD VB _Prep
+60	_MD	MD VB _VBG
+180	_MD	MD VB _VBN
+50	_MD	MD _VBP
+60	_MD	MD VBP _EOS
+60	_MD	MD VBP _Prep
+180	_MD	MD VBP _VBN
+1	_NNS	NNS
+10	_NNS	NNS _EOS
+10	_NNS	NNS _PAUSE
+60	_NNS	NNS PAUSE _VerbT
+10	_NNS	NNS _VB
+60	_NNS	NNS VB _EOS
+20	_NNS	NNS _VBP
+60	_NNS	NNS VBP _EOS
+60	_NNS	NNS VBP _Prep
+1	_NOT	NOT
+10	_NOT	NOT _VB
+60	_NOT	NOT VB _EOS
+10	_NOT	NOT _VBP
+60	_NOT	NOT VBP _EOS
+1	_Noun	Noun
+10	_Noun	Noun _Det
+60	_Noun	Noun Det _VBD
+100	_Noun	Noun _EOS
+10	_Noun	Noun _IN
+60	_Noun	Noun IN _VBD
+10	_Noun	Noun _Prep
+60	_Noun	Noun Prep _Det
+10	_Noun	Noun _VB
+60	_Noun	Noun VB _VBD
+60	_Noun	Noun VB _VBN
+10	_Noun	Noun _VBD
+60	_Noun	Noun VBD _TO
+10	_Noun	Noun _VerbT
+60	_Noun	Noun VerbT _PAUSE
+10	_Noun	Noun _WHD
+60	_Noun	Noun WHD _VBD
+1	_PAUSE	PAUSE
+10	_PAUSE	PAUSE _CD
+60	_PAUSE	PAUSE CD _NNS
+10	_PAUSE	PAUSE _Det
+60	_PAUSE	PAUSE Det _JJ
+10	_PAUSE	PAUSE _Proper
+60	_PAUSE	PAUSE Proper _VerbT
+10	_PAUSE	PAUSE _VerbT
+60	_PAUSE	PAUSE VerbT _Det
+1	_PAUSE2 	PAUSE2 
+1	_POSSESSIVE	POSSESSIVE
+1	_PRP	PRP
+10	_PRP	PRP _EOS
+10	_PRP	PRP _MD
+60	_PRP	PRP MD _VB
+60	_PRP	PRP MD _VBP
+30	_PRP	PRP _VB
+60	_PRP	PRP VB _EOS
+60	_PRP	PRP VB _PRP
+60	_PRP	PRP VB _RB
+10	_PRP	PRP _VBG
+60	_PRP	PRP VBG _Proper
+40	_PRP	PRP _VBP
+60	_PRP	PRP VBP _EOS
+60	_PRP	PRP VBP _PRP
+60	_PRP	PRP VBP _RB
+60	_PRP	PRP VBP _VBG
+10	_PRP	PRP _VBZ
+60	_PRP	PRP VBZ _WHD
+60	_PRP	PRP VBZ _WP
+10	_PRP	PRP _VerbT
+60	_PRP	PRP VerbT _Proper
+1	_PRP$	PRP$
+20	_PRP$	PRP$ _Noun
+120	_PRP$	PRP$ Noun _EOS
+1	_Prep	Prep
+10	_Prep	Prep _CD
+60	_Prep	Prep CD _NNS
+50	_Prep	Prep _Det
+60	_Prep	Prep Det _JJ
+180	_Prep	Prep Det _Noun
+60	_Prep	Prep Det _Proper2
+10	_Prep	Prep _IN
+60	_Prep	Prep IN _Noun
+10	_Prep	Prep _PRP
+60	_Prep	Prep PRP _EOS
+10	_Prep	Prep _PRP$
+60	_Prep	Prep PRP$ _Noun
+10	_Prep	Prep _Proper
+60	_Prep	Prep Proper _EOS
+10	_Prep	Prep _WHD
+60	_Prep	Prep WHD _Noun
+1	_Proper	Proper
+20	_Proper	Proper _CC
+120	_Proper	Proper CC _Proper
+20	_Proper	Proper _EOS
+50	_Proper	Proper _MD
+300	_Proper	Proper MD _VB
+240	_Proper	Proper MD _VBP
+20	_Proper	Proper _PAUSE
+60	_Proper	Proper PAUSE _CD
+60	_Proper	Proper PAUSE _Det
+40	_Proper	Proper _VB
+60	_Proper	Proper VB _EOS
+60	_Proper	Proper VB _PRP
+60	_Proper	Proper VB _RB
+60	_Proper	Proper VB _TO
+20	_Proper	Proper _VBD
+60	_Proper	Proper VBD _Det
+60	_Proper	Proper VBD _IN
+60	_Proper	Proper VBD _TO
+60	_Proper	Proper VBD _WHD
+10	_Proper	Proper _VBN
+60	_Proper	Proper VBN _Det
+60	_Proper	Proper VBN _IN
+60	_Proper	Proper VBN _WHD
+40	_Proper	Proper _VBP
+60	_Proper	Proper VBP _EOS
+60	_Proper	Proper VBP _PRP
+60	_Proper	Proper VBP _RB
+60	_Proper	Proper VBP _TO
+30	_Proper	Proper _VBZ
+60	_Proper	Proper VBZ _CC
+60	_Proper	Proper VBZ _EOS
+60	_Proper	Proper VBZ _Proper
+30	_Proper	Proper _VerbT
+120	_Proper	Proper VerbT _Det
+60	_Proper	Proper VerbT _EOS
+10	_Proper	Proper _WP
+60	_Proper	Proper WP _VBZ
+1	_Proper2	Proper2
+10	_Proper2	Proper2 _CC
+60	_Proper2	Proper2 CC _VBD
+20	_Proper2	Proper2 _EOS
+10	_Proper2	Proper2 _VB
+60	_Proper2	Proper2 VB _Det
+10	_Proper2	Proper2 _VBD
+60	_Proper2	Proper2 VBD _VBD
+60	_Proper2	Proper2 VBD _VBN
+10	_Proper2	Proper2 _VBP
+60	_Proper2	Proper2 VBP _Det
+10	_Proper2	Proper2 _VerbT
+60	_Proper2	Proper2 VerbT _JJ
+1	_ProperS	ProperS
+1	_RB	RB
+10	_RB	RB _EOS
+10	_RB	RB _IN
+60	_RB	RB IN _PRP
+10	_RB	RB _VB
+60	_RB	RB VB _EOS
+10	_RB	RB _VBP
+60	_RB	RB VBP _EOS
+1	_TO	TO
+10	_TO	TO _Det
+60	_TO	TO Det _Noun
+30	_TO	TO _Proper2
+60	_TO	TO Proper2 _CC
+60	_TO	TO Proper2 _EOS
+60	_TO	TO Proper2 _VerbT
+1	_VB	VB
+10	_VB	VB _Det
+60	_VB	VB Det _Noun
+50	_VB	VB _EOS
+20	_VB	VB _PRP
+60	_VB	VB PRP _MD
+60	_VB	VB PRP _VB
+60	_VB	VB PRP _VBP
+10	_VB	VB _Prep
+60	_VB	VB Prep _PRP
+20	_VB	VB _RB
+60	_VB	VB RB _EOS
+60	_VB	VB RB _IN
+10	_VB	VB _TO
+60	_VB	VB TO _Proper2
+10	_VB	VB _VBD
+60	_VB	VB VBD _EOS
+10	_VB	VB _VBG
+60	_VB	VB VBG _Prep
+40	_VB	VB _VBN
+120	_VB	VB VBN _EOS
+60	_VB	VB VBN _VBD
+60	_VB	VB VBN _VBG
+60	_VB	VB VBN _VBN
+1	_VBD	VBD
+10	_VBD	VBD _Det
+60	_VBD	VBD Det _Det
+10	_VBD	VBD _EOS
+10	_VBD	VBD _IN
+60	_VBD	VBD IN _Det
+10	_VBD	VBD _PRP$
+60	_VBD	VBD PRP$ _Noun
+30	_VBD	VBD _Prep
+120	_VBD	VBD Prep _Det
+60	_VBD	VBD Prep _PRP$
+20	_VBD	VBD _TO
+60	_VBD	VBD TO _Det
+60	_VBD	VBD TO _Proper2
+10	_VBD	VBD _VBD
+60	_VBD	VBD VBD _Prep
+10	_VBD	VBD _VBN
+60	_VBD	VBD VBN _Prep
+10	_VBD	VBD _WHD
+60	_VBD	VBD WHD _Det
+1	_VBG	VBG
+30	_VBG	VBG _Prep
+60	_VBG	VBG Prep _CD
+60	_VBG	VBG Prep _Det
+60	_VBG	VBG Prep _IN
+60	_VBG	VBG Prep _Proper
+60	_VBG	VBG Prep _WHD
+10	_VBG	VBG _Proper
+60	_VBG	VBG Proper _VB
+60	_VBG	VBG Proper _VBP
+10	_VBG	VBG _TO
+60	_VBG	VBG TO _Proper2
+1	_VBN	VBN
+10	_VBN	VBN _Det
+60	_VBN	VBN Det _Det
+20	_VBN	VBN _EOS
+10	_VBN	VBN _IN
+60	_VBN	VBN IN _Det
+20	_VBN	VBN _Prep
+120	_VBN	VBN Prep _Det
+10	_VBN	VBN _VBD
+60	_VBN	VBN VBD _Prep
+10	_VBN	VBN _VBG
+60	_VBN	VBN VBG _Prep
+10	_VBN	VBN _VBN
+60	_VBN	VBN VBN _Prep
+10	_VBN	VBN _WHD
+60	_VBN	VBN WHD _Det
+1	_VBP	VBP
+10	_VBP	VBP _Det
+60	_VBP	VBP Det _Noun
+50	_VBP	VBP _EOS
+10	_VBP	VBP _NNS
+60	_VBP	VBP NNS _VB
+60	_VBP	VBP NNS _VBP
+10	_VBP	VBP _NOT
+60	_VBP	VBP NOT _VB
+60	_VBP	VBP NOT _VBP
+30	_VBP	VBP _PRP
+60	_VBP	VBP PRP _MD
+60	_VBP	VBP PRP _VB
+60	_VBP	VBP PRP _VBG
+60	_VBP	VBP PRP _VBP
+20	_VBP	VBP _Prep
+60	_VBP	VBP Prep _Det
+60	_VBP	VBP Prep _PRP
+30	_VBP	VBP _RB
+60	_VBP	VBP RB _EOS
+60	_VBP	VBP RB _IN
+60	_VBP	VBP RB _VB
+60	_VBP	VBP RB _VBP
+10	_VBP	VBP _TO
+60	_VBP	VBP TO _Proper2
+10	_VBP	VBP _VBG
+60	_VBP	VBP VBG _Prep
+30	_VBP	VBP _VBN
+60	_VBP	VBP VBN _EOS
+60	_VBP	VBP VBN _VBD
+60	_VBP	VBP VBN _VBG
+60	_VBP	VBP VBN _VBN
+1	_VBZ	VBZ
+10	_VBZ	VBZ _CC
+60	_VBZ	VBZ CC _Proper
+10	_VBZ	VBZ _EOS
+40	_VBZ	VBZ _Proper
+60	_VBZ	VBZ Proper _EOS
+60	_VBZ	VBZ Proper _PAUSE
+120	_VBZ	VBZ Proper _VB
+120	_VBZ	VBZ Proper _VBP
+10	_VBZ	VBZ _Proper2
+60	_VBZ	VBZ Proper2 _VB
+60	_VBZ	VBZ Proper2 _VBP
+10	_VBZ	VBZ _WHD
+60	_VBZ	VBZ WHD _PRP
+10	_VBZ	VBZ _WP
+60	_VBZ	VBZ WP _PRP
+1	_VerbT	VerbT
+30	_VerbT	VerbT _Det
+60	_VerbT	VerbT Det _JJ
+120	_VerbT	VerbT Det _Noun
+10	_VerbT	VerbT _EOS
+10	_VerbT	VerbT _JJ
+60	_VerbT	VerbT JJ _EOS
+10	_VerbT	VerbT _PAUSE
+60	_VerbT	VerbT PAUSE _Proper
+10	_VerbT	VerbT _Proper
+60	_VerbT	VerbT Proper _WP
+1	_WHD	WHD
+10	_WHD	WHD _Det
+60	_WHD	WHD Det _Noun
+10	_WHD	WHD _Noun
+60	_WHD	WHD Noun _EOS
+10	_WHD	WHD _PRP
+60	_WHD	WHD PRP _VBP
+10	_WHD	WHD _VBD
+60	_WHD	WHD VBD _PRP$
+10	_WHD	WHD _VBZ
+60	_WHD	WHD VBZ _Proper
+1	_WHPP	WHPP
+1	_WP	WP
+10	_WP	WP _PRP
+60	_WP	WP PRP _VBP
+30	_WP	WP _VBZ
+180	_WP	WP VBZ _Proper
+1	_WRB	WRB
+10	_WRB	WRB _Det
+60	_WRB	WRB Det _Noun
+10	_WRB	WRB _VBZ
+60	_WRB	WRB VBZ _Proper2
