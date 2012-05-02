@@ -19,13 +19,14 @@ class Tree:
 
     def is_preterminal(self):
         """
-            Returns true level of non-terminals which are directly above
+            Returns true level for non-terminals which are directly above
             single words (leaves).
         """
         return len(self.children) == 1 and self.children[0].is_leaf()
 
     def is_phrasal(self):
-        return not (self.is_leaf() and self.is_preterminal)
+        # Seems to be defined incorrectly. Not used anywhere.
+        return not (self.is_leaf() and self.is_preterminal())
 
     def _append_yield(self, leaf_labels):
         if self.is_leaf():
@@ -53,7 +54,7 @@ class Tree:
     def get_preterminal_yield(self):
         """
             Returns a list of the preterminals gotten by traversing from left
-            to right.  This is effectively an POS tagging for the words that
+            to right.  This is effectively a POS tagging for the words that
             tree represents.
         """
         preterm_yield = []
@@ -90,10 +91,9 @@ class Tree:
         if self.is_leaf():
             self.label = words[word_num]
             return word_num + 1
-        else:
-            for child in self.children:
-                word_num = child._set_words_helper(words, word_num)
-            return word_num
+        for child in self.children:
+            word_num = child._set_words_helper(words, word_num)
+        return word_num
 
     def set_words(self, words):
         """

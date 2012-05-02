@@ -6,5 +6,6 @@ SET DATA=miniTest
 
 REM --parser PCFGParser \
 
-python PCFGParserTester.py --path ../data --parser BaselineParser  --data %DATA%
-  
+REM python PCFGParserTester.py --path ../data --parser BaselineParser  --data %DATA%
+python PCFGParserTester.py --path ../data --parser  PCFGParser  --data %DATA%
+

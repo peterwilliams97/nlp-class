@@ -85,7 +85,7 @@ class BaselineParser(Parser):
         return Tree(most_freq_label, [left_tree, right_tree])
 
     def add_root(self, tree):
-        return Tree("ROOT", [tree])
+        return Tree('ROOT', [tree])
 
     def build_tag_tree(self, words, tags, cur_position):
         leaf_tree = Tree(words[cur_position])
@@ -93,6 +93,10 @@ class BaselineParser(Parser):
         return tag_tree
 
     def get_best_known_parse(self, tags, sentence):
+        # Simpler 
+        # parses = self.known_parses[tags]
+        # parse = max(parses.keys(), key = lambda k: parses[k])
+        
         maxval = max(self.known_parses[tags].values())
         for key in self.known_parses[tags]:
             if self.known_parses[tags][key] == maxval:
@@ -103,10 +107,12 @@ class BaselineParser(Parser):
         return parse
 
     def get_baseline_tagging(self, sentence):
-        tags = [self.get_best_tag(word) for word in sentence]
-        return tags
+        return [self.get_best_tag(word) for word in sentence]
 
     def get_best_tag(self, word):
+        # Simpler 
+        # return max(self.lexicon.get_all_tags(), 
+        #    key = lambda k: self.lexicon.score_tagging(word, k))
         best_score = 0
         best_tag = None
         for tag in self.lexicon.get_all_tags():
@@ -146,7 +152,13 @@ class TreeAnnotations:
         # mark nodes with the label of their parent nodes, giving a second
         # order vertical markov process
 
-        return TreeAnnotations.binarize_tree(unannotated_tree)
+        annotated_tree = TreeAnnotations.binarize_tree(unannotated_tree)
+        print '.' * 80
+        print unannotated_tree
+        print '-' * 80
+        print annotated_tree
+        print '=' * 80
+        return annotated_tree
 
     @classmethod
     def binarize_tree(cls, tree):
@@ -214,8 +226,7 @@ class Lexicon:
         """
         self.total_tokens = 0.0
         self.total_word_types = 0.0
-        self.word_to_tag_counters = collections.defaultdict(lambda: \
-                collections.defaultdict(lambda: 0.0))
+        self.word_to_tag_counters = collections.defaultdict(lambda: collections.defaultdict(lambda: 0.0))
         self.tag_counter = collections.defaultdict(lambda: 0.0)
         self.word_counter = collections.defaultdict(lambda: 0.0)
         self.type_to_tag_counter = collections.defaultdict(lambda: 0.0)
@@ -248,8 +259,7 @@ class Lexicon:
         c_tag_and_word = float(self.word_to_tag_counters[word][tag])
         if c_word < 10:
             c_word += 1
-            c_tag_and_word += float(self.type_to_tag_counter[tag]) \
-                    / self.total_word_types
+            c_tag_and_word += float(self.type_to_tag_counter[tag]) / self.total_word_types
         p_word = (1.0 + c_word) / (self.total_tokens + self.total_word_types)
         p_tag_given_word = c_tag_and_word / c_word
         return p_tag_given_word / p_tag * p_word
@@ -275,24 +285,20 @@ class Grammar:
         symbol_counter = collections.defaultdict(lambda: 0)
 
         for train_tree in train_trees:
-            self.tally_tree(train_tree, symbol_counter,
-                    unary_rule_counter, binary_rule_counter)
+            self.tally_tree(train_tree, symbol_counter, unary_rule_counter, binary_rule_counter)
         for unary_rule in unary_rule_counter:
-            unary_prob = float(unary_rule_counter[unary_rule]) \
-                    / symbol_counter[unary_rule.parent]
+            unary_prob = float(unary_rule_counter[unary_rule]) / symbol_counter[unary_rule.parent]
             unary_rule.score = unary_prob
             self.add_unary(unary_rule)
         for binary_rule in binary_rule_counter:
-            binary_prob = float(binary_rule_counter[binary_rule]) \
-                    / symbol_counter[binary_rule.parent]
+            binary_prob = float(binary_rule_counter[binary_rule]) / symbol_counter[binary_rule.parent]
             binary_rule.score = binary_prob
             self.add_binary(binary_rule)
 
     def __unicode__(self):
         rule_strings = []
         for left_child in self.binary_rules_by_left_child:
-            for binary_rule in self.get_binary_rules_by_left_child(
-                    left_child):
+            for binary_rule in self.get_binary_rules_by_left_child(left_child):
                 rule_strings.append(str(binary_rule))
         for child in self.unary_rules_by_child:
             for unary_rule in self.get_unary_rules_by_child(child):
@@ -300,10 +306,8 @@ class Grammar:
         return '%s\n' % ''.join(rule_strings)
 
     def add_binary(self, binary_rule):
-        self.binary_rules_by_left_child[binary_rule.left_child].\
-                append(binary_rule)
-        self.binary_rules_by_right_child[binary_rule.right_child].\
-                append(binary_rule)
+        self.binary_rules_by_left_child[binary_rule.left_child].append(binary_rule)
+        self.binary_rules_by_right_child[binary_rule.right_child].append(binary_rule)
 
     def add_unary(self, unary_rule):
         self.unary_rules_by_child[unary_rule.child].append(unary_rule)
@@ -317,8 +321,7 @@ class Grammar:
     def get_unary_rules_by_child(self, child):
         return self.unary_rules_by_child[child]
 
-    def tally_tree(self, tree, symbol_counter, unary_rule_counter,
-            binary_rule_counter):
+    def tally_tree(self, tree, symbol_counter, unary_rule_counter, binary_rule_counter):
         if tree.is_leaf():
             return
         if tree.is_preterminal():
@@ -336,15 +339,13 @@ class Grammar:
                     + "an illegal tree (most likely not binarized): " \
                     + str(tree))
         for child in tree.children:
-            self.tally_tree(child, symbol_counter, unary_rule_counter,
-                    binary_rule_counter)
+            self.tally_tree(child, symbol_counter, unary_rule_counter, binary_rule_counter)
 
     def make_unary_rule(self, tree):
         return UnaryRule(tree.label, tree.children[0].label)
 
     def make_binary_rule(self, tree):
-        return BinaryRule(tree.label, tree.children[0].label,
-                tree.children[1].label)
+        return BinaryRule(tree.label, tree.children[0].label, tree.children[1].label)
 
 class BinaryRule:
     """
@@ -385,7 +386,6 @@ class UnaryRule:
     """
         A unary grammar rule with score representing its probability.
     """
-
     def __init__(self, parent, child):
         self.parent = parent
         self.child = child
@@ -395,22 +395,14 @@ class UnaryRule:
         return '%s->%s %% %s' % (self.parent, self.child, self.score)
 
     def __hash__(self):
-        result = hash(self.parent)
-        result = 29 * result + hash(self.child)
-        return result
+        return 29 * hash(self.parent) + hash(self.child)
 
     def __eq__(self, o):
         if self is o:
             return True
 
-        if not isinstance(o, UnaryRule):
-            return False
-
-        if (self.child != o.child):
-            return False
-        if (self.parent != o.parent):
-            return False
-        return True
+        return isinstance(o, UnaryRule) and self.child == o.child \
+                and self.parent == o.parent
 
 MAX_LENGTH = 20
 
@@ -422,22 +414,20 @@ def test_parser(parser, test_trees):
         if len(test_sentence) > 20:
             continue
         guessed_tree = parser.get_best_parse(test_sentence)
-        print "Guess:\n%s" % Trees.PennTreeRenderer.render(guessed_tree)
-        print "Gold:\n%s" % Trees.PennTreeRenderer.render(test_tree)
+        print 'Guess:\n%s' % Trees.PennTreeRenderer.render(guessed_tree)
+        print 'Gold:\n%s' % Trees.PennTreeRenderer.render(test_tree)
         evaluator.evaluate(guessed_tree, test_tree)
     print ""
     return evaluator.display(True)
 
 def read_trees(base_path, low=None, high=None):
     trees = PennTreebankReader.read_trees(base_path, low, high)
-    return [Trees.StandardTreeNormalizer.transform_tree(tree) \
-        for tree in trees]
+    return [Trees.StandardTreeNormalizer.transform_tree(tree) for tree in trees]
 
 def read_masc_trees(base_path, low=None, high=None):
     print "Reading MASC from %s" % base_path
     trees = MASCTreebankReader.read_trees(base_path, low, high)
-    return [Trees.StandardTreeNormalizer.transform_tree(tree) \
-        for tree in trees]
+    return [Trees.StandardTreeNormalizer.transform_tree(tree) for tree in trees]
 
 if __name__ == '__main__':
     opt_parser = optparse.OptionParser()

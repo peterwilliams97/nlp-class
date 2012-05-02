@@ -404,9 +404,9 @@ def splice_nodes(tree, filter_func):
 def splice_nodes_helper(tree, filter_func):
     spliced_children = []
     for child in tree.children:
-        spliced_child_list = splice_nodes_helper(child, filter_func)
-        spliced_children.extend(spliced_child_list)
-        #spliced_children += splice_nodes_helper(child, filter_func)
+        #spliced_child_list = splice_nodes_helper(child, filter_func)
+        #spliced_children.extend(spliced_child_list)
+        spliced_children += splice_nodes_helper(child, filter_func)
     if filter_func(tree.label):
         return spliced_children
     return [Tree(tree.label, spliced_children)]
