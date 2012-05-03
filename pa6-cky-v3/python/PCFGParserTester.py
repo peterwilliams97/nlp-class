@@ -4,8 +4,7 @@ import optparse
 
 from ling.Tree import Tree
 import ling.Trees as Trees
-import pennParser.EnglishPennTreebankParseEvaluator as \
-        EnglishPennTreebankParseEvaluator
+import pennParser.EnglishPennTreebankParseEvaluator as EnglishPennTreebankParseEvaluator
 import io.PennTreebankReader as PennTreebankReader
 import io.MASCTreebankReader as MASCTreebankReader
 
@@ -152,13 +151,7 @@ class TreeAnnotations:
         # mark nodes with the label of their parent nodes, giving a second
         # order vertical markov process
 
-        annotated_tree = TreeAnnotations.binarize_tree(unannotated_tree)
-        print '.' * 80
-        print unannotated_tree
-        print '-' * 80
-        print annotated_tree
-        print '=' * 80
-        return annotated_tree
+        return  TreeAnnotations.binarize_tree(unannotated_tree)
 
     @classmethod
     def binarize_tree(cls, tree):
@@ -169,20 +162,17 @@ class TreeAnnotations:
             return Tree(label, [TreeAnnotations.binarize_tree(tree.children[0])])
 
         intermediate_label = '@%s->' % label
-        intermediate_tree = TreeAnnotations.binarize_tree_helper(
-                tree, 0, intermediate_label)
+        intermediate_tree = TreeAnnotations.binarize_tree_helper(tree, 0, intermediate_label)
         return Tree(label, intermediate_tree.children)
 
     @classmethod
-    def binarize_tree_helper(cls, tree, num_children_generated,
-            intermediate_label):
+    def binarize_tree_helper(cls, tree, num_children_generated, intermediate_label):
         left_tree = tree.children[num_children_generated]
         children = []
         children.append(TreeAnnotations.binarize_tree(left_tree))
         if num_children_generated < len(tree.children) - 1:
             right_tree = TreeAnnotations.binarize_tree_helper(
-                    tree, num_children_generated + 1,
-                    intermediate_label + '_' + left_tree.label)
+                    tree, num_children_generated + 1, intermediate_label + '_' + left_tree.label)
             children.append(right_tree)
         return Tree(intermediate_label, children)
 
@@ -199,10 +189,8 @@ class TreeAnnotations:
             Examples: a node with label @NP->DT_JJ will be spliced out,
             and a node with label NP^S will be reduced to NP
         """
-        debinarized_tree = Trees.splice_nodes(annotated_tree,
-                TreeAnnotations.at_filter)
-        unannotated_tree = Trees.FunctionNodeStripper.transform_tree(
-                debinarized_tree)
+        debinarized_tree = Trees.splice_nodes(annotated_tree, TreeAnnotations.at_filter)
+        unannotated_tree = Trees.FunctionNodeStripper.transform_tree(debinarized_tree)
         return unannotated_tree
 
 class Lexicon:
@@ -455,7 +443,7 @@ if __name__ == '__main__':
     if not base_path.endswith('/'):
         base_path += '/'
 
-    print "Data will be loaded from: %s" % base_path
+    print 'Data will be loaded from: %s' % base_path
 
     train_trees = []
     validation_trees = []
@@ -465,45 +453,45 @@ if __name__ == '__main__':
         base_path += 'parser/%s' % data_set
 
         # training data: first 3 of 4 datums
-        print "Loading training trees..."
+        print 'Loading training trees...'
         train_trees = read_trees(base_path, 1, 3)
-        print "done."
+        print 'done.'
 
         # test data: last of 4 datums
-        print "Loading test trees..."
+        print 'Loading test trees...'
         test_trees = read_trees(base_path, 4, 4)
-        print "done."
+        print 'done.'
 
     if data_set == 'masc':
         base_path += 'parser/'
 
         # training data: MASC train
-        print "Loading MASC training trees... from: %smasc/train" % base_path
-        train_trees.extend(read_masc_trees("%smasc/train" % base_path, 0, 38))
-        print "done."
-        print "Train trees size: %d" % len(train_trees)
-        print "First train tree: %s" % \
+        print 'Loading MASC training trees... from: %smasc/train' % base_path
+        train_trees.extend(read_masc_trees('%smasc/train' % base_path, 0, 38))
+        print 'done.'
+        print 'Train trees size: %d' % len(train_trees)
+        print 'First train tree: %s' % \
                 Trees.PennTreeRenderer.render(train_trees[0])
-        print "Last train tree: %s" % \
+        print 'Last train tree: %s' % \
                 Trees.PennTreeRenderer.render(train_trees[-1])
 
         # test data: MASC devtest
-        print "Loading MASC test trees..."
-        test_trees.extend(read_masc_trees("%smasc/devtest" % base_path, 0, 11))
-        #test_trees.extend(read_masc_trees("%smasc/blindtest" % base_path, 0, 8))
-        print "done."
-        print "Test trees size: %d" % len(test_trees)
-        print "First test tree: %s" % \
+        print 'Loading MASC test trees...'
+        test_trees.extend(read_masc_trees('%smasc/devtest' % base_path, 0, 11))
+        #test_trees.extend(read_masc_trees('%smasc/blindtest' % base_path, 0, 8))
+        print 'done.'
+        print 'Test trees size: %d' % len(test_trees)
+        print 'First test tree: %s' % \
                 Trees.PennTreeRenderer.render(test_trees[0])
-        print "Last test tree: %s" % \
+        print 'Last test tree: %s' % \
                 Trees.PennTreeRenderer.render(test_trees[-1])
 
-    if data_set not in ["miniTest", "masc"]:
-        raise Exception("Bad data set: %s: use miniTest or masc." % data_set)
+    if data_set not in ['miniTest', 'masc']:
+        raise Exception('Bad data set: %s: use miniTest or masc.' % data_set)
 
-    print ""
-    print "Training parser..."
+    print ''
+    print 'Training parser...'
     parser.train(train_trees)
 
-    print "Testing parser"
+    print 'Testing parser'
     test_parser(parser, test_trees)
