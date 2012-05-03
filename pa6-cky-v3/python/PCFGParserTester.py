@@ -8,7 +8,16 @@ import pennParser.EnglishPennTreebankParseEvaluator as EnglishPennTreebankParseE
 import io.PennTreebankReader as PennTreebankReader
 import io.MASCTreebankReader as MASCTreebankReader
 
+def PP(x): 
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(x)
+
+def D(d): 
+    return dict([(str(k),str(v)) for k,v in d.items()])    
+    
 class Parser:
+    """*Effectively abstract) base class"""
 
     def train(self, train_trees):
         pass
@@ -26,17 +35,156 @@ class PCFGParser(Parser):
         #       trees need to be binarized so that rules are at
         #       most binary
 
-        self.lexicon = Lexicon(train_trees)
-        self.grammar = Grammar(train_trees)
+        annotated_trees = [TreeAnnotations.annotate_tree(tree) for tree in train_trees]
+        self.lexicon = Lexicon(annotated_trees)
+        self.grammar = Grammar(annotated_trees)
+
+        if True:
+            print 'trees'
+            for tree in annotated_trees: print tree
+            print 'lexicon'
+            lex = dict(((k,dict(v)) for k,v in self.lexicon.word_to_tag_counters.items())) 
+            PP(lex)
+            print 'grammar' 
+            PP(self.grammar)
+            #exit()
 
     def get_best_parse(self, sentence):
         """
-        Should return a Tree.
-        'sentence' is a list of strings (words) that form a sentence.
+            Should return a Tree.
+            'sentence' is a list of strings (words) that form a sentence.
+            
+            function CKY(words, grammar) returns [most_probable_parse,prob] 
+              score = new double[#(words)+1][#(words)+1][#(nonterms)] 
+              back = new Pair[#(words)+1][#(words)+1][#nonterms]] 
+              for i=0; i<#(words); i++ 
+                for A in nonterms
+                  if A -> words[i] in grammar 
+                    score[i][i+1][A] = P(A -> words[i]) 
+                //handle unaries
+                boolean added = true 
+                while added  
+                  added = false 
+                  for A, B in nonterms
+                    if score[i][i+1][B] > 0 && A->B in grammar 
+                      prob = P(A->B)*score[i][i+1][B] 
+                      if prob > score[i][i+1][A] 
+                        score[i][i+1][A] = prob
+                        back[i][i+1][A] = B 
+                        added = true
+                        
+              for span = 2 to #(words)
+                for begin = 0 to #(words)- span
+                    end = begin + span
+                    for split = begin+1 to end-1
+                        for A,B,C in nonterms
+                            prob=score[begin][split][B]*score[split][end][C]*P(A->BC)
+                            if prob > score[begin][end][A]
+                                score[begin]end][A] = prob
+                                back[begin][end][A] = new Triple(split,B,C)
+                    //handle unaries
+                    boolean added = true
+                    while added
+                        added = false
+                        for A, B in nonterms
+                        prob = P(A->B)*score[begin][end][B];
+                            if prob > score[begin][end][A]
+                                score[begin][end][A] = prob
+                                back[begin][end][A] = B
+                                added = true           
         """
         # TODO: implement this method
+        print sentence
+        lexicon = self.lexicon
+        grammar = self.grammar
+        nonterms = grammar.binary_rules_by_left_child
+        
+        print 'grammar.unary_rules_by_child'
+        PP(dict([(k,[str(s) for s in v]) for k,v in grammar.unary_rules_by_child.items()]))
+        rules = [str(s) for s in grammar.unary_rules_by_child['N']]
+        print 'grammar.unary_rules_by_child[%s]=%s' % ('N', rules)
+            
+        n = len(sentence)
+        m = len(nonterms)
+        scores = [[{} for j in range(n+1)] for i in range(n+1)]
+        back = [[{} for j in range(n+1)] for i in range(n+1)]
+        
+        # First the Lexicon
 
-        return None
+        # Scan left to right
+        for i in range(n):
+            word = sentence[i]
+            for tag in lexicon.get_all_tags():
+                A = UnaryRule(tag, word)
+                A.score = lexicon.score_tagging(word, tag)
+                scores[i][i+1][A] = A.score 
+
+            # handle unaries
+            added = True
+            while added:
+                added = False
+                # Don't modify the dict we are iterating
+                these_scores = copy.copy(scores[i][i+1])
+                for B in these_scores:
+                    #print 'B*', B, these_scores[B]
+                    for A in grammar.get_unary_rules_by_child(B.parent):
+                        #print 'A**', A, these_scores.get(A, 0)
+                        if these_scores[B] > 0:
+                            prob = B.score * these_scores[B] 
+                            #print '***', prob
+                            if prob > these_scores.get(A, 0): 
+                                scores[i][i+1][A] = prob
+                                back[i][i+1][A] = B 
+                                #print 'added %s => %s' % (A,B)
+                                added = True
+            
+        # Do higher layers  
+        for span in range(2, n + 1):
+            for begin in range(n - span + 1):
+                end = begin + span
+                print '* begin,end = %d,%d' % (begin, end)
+                for split in range(begin + 1, end):
+                    B_scores = scores[begin][split]
+                    C_scores = scores[split][end]
+                    C_parents = [c.parent for c in C_scores]
+                    for B in B_scores:
+                        for A in grammar.get_binary_rules_by_left_child(B.parent):
+                            C2_scores = [C for C in C_scores if C.parent == A.right_child]
+                            for C in C2_scores:
+                                # Now have A which has B as left child and C as right child 
+                                #print 'C*', C, C_scores[C]
+                                prob = B_scores[B] * C_scores[C] * A.score
+                                if prob > scores[begin][end].get(A, 0):
+                                    scores[begin][end][A] = prob
+                                    back[begin][end][A] = (split, B, C)
+                # Handle unaries
+                added = True
+                while added:
+                    added = False
+                    these_scores = copy.copy(scores[begin][end])
+                    for B in these_scores:
+                        for A in grammar.get_unary_rules_by_child(B.parent):
+                            prob = B.score * these_scores[B] 
+                            if prob > these_scores.get(A, 0): 
+                                scores[begin][end][A] = prob
+                                back[begin][end][A] = B 
+                                #print 'added %s => %s' % (A,B)
+                                added = True
+
+        def show_table(scores):
+            print '-' * 80
+            for i,row in enumerate(scores):
+                for j, val in enumerate(row):
+                    if j > i:
+                        print '%2d,%2d:' % (i,j),
+                        if val: print
+                        PP(D(val))
+        if True:
+            #s = [[D(d) for d in r] for r in scores]
+            #PP(s)
+            show_table(scores)
+            exit()
+
 
 class BaselineParser(Parser):
 
@@ -151,16 +299,17 @@ class TreeAnnotations:
         # mark nodes with the label of their parent nodes, giving a second
         # order vertical markov process
 
-        return  TreeAnnotations.binarize_tree(unannotated_tree)
+        return TreeAnnotations.binarize_tree(unannotated_tree)
 
     @classmethod
     def binarize_tree(cls, tree):
         label = tree.label
         if tree.is_leaf():
             return Tree(label)
-        if len(tree.children) == 1:
-            return Tree(label, [TreeAnnotations.binarize_tree(tree.children[0])])
-
+        if len(tree.children) <= 2:    
+            children = [TreeAnnotations.binarize_tree(child) for child in tree.children]
+            return Tree(label, children)
+       
         intermediate_label = '@%s->' % label
         intermediate_tree = TreeAnnotations.binarize_tree_helper(tree, 0, intermediate_label)
         return Tree(label, intermediate_tree.children)
@@ -224,7 +373,7 @@ class Lexicon:
             tags = train_tree.get_preterminal_yield()
             for word, tag in zip(words, tags):
                 self.tally_tagging(word, tag)
-
+                
     def tally_tagging(self, word, tag):
         """Add word:tag to lexicon?"""
         if not self.is_known(word):
@@ -251,6 +400,11 @@ class Lexicon:
         p_word = (1.0 + c_word) / (self.total_tokens + self.total_word_types)
         p_tag_given_word = c_tag_and_word / c_word
         return p_tag_given_word / p_tag * p_word
+        
+    def __str__(self):
+        wc =  dict(self.word_counter)
+        wtc = dict(((k,dict(v)) for k,v in self.word_to_tag_counters.items())) 
+        return 'word_counter=%s\nword_to_tag_counters=%s' % (wc, wtc)
 
 class Grammar:
     """
@@ -291,7 +445,11 @@ class Grammar:
         for child in self.unary_rules_by_child:
             for unary_rule in self.get_unary_rules_by_child(child):
                 rule_strings.append(str(unary_rule))
-        return '%s\n' % ''.join(rule_strings)
+               
+        return '%s\n' % '\n'.join(rule_strings)
+        
+    def __str__(self):   
+        return unicode(self).encode('utf-8')
 
     def add_binary(self, binary_rule):
         self.binary_rules_by_left_child[binary_rule.left_child].append(binary_rule)
@@ -323,9 +481,8 @@ class Grammar:
             symbol_counter[tree.label] += 1
             binary_rule_counter[binary_rule] += 1
         if len(tree.children) < 1 or len(tree.children) > 2:
-            raise Exception("Attempted to construct a Grammar with " \
-                    + "an illegal tree (most likely not binarized): " \
-                    + str(tree))
+            raise Exception('Attempted to construct a Grammar with ' \
+                    + 'an illegal tree (most likely not binarized): ' + str(tree))
         for child in tree.children:
             self.tally_tree(child, symbol_counter, unary_rule_counter, binary_rule_counter)
 
@@ -405,7 +562,7 @@ def test_parser(parser, test_trees):
         print 'Guess:\n%s' % Trees.PennTreeRenderer.render(guessed_tree)
         print 'Gold:\n%s' % Trees.PennTreeRenderer.render(test_tree)
         evaluator.evaluate(guessed_tree, test_tree)
-    print ""
+    print ''
     return evaluator.display(True)
 
 def read_trees(base_path, low=None, high=None):

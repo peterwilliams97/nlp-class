@@ -26,7 +26,7 @@ class Tree:
 
     def is_phrasal(self):
         # Seems to be defined incorrectly. Not used anywhere.
-        return not (self.is_leaf() and self.is_preterminal())
+        return not self.is_leaf() and not self.is_preterminal()
 
     def _append_yield(self, leaf_labels):
         if self.is_leaf():

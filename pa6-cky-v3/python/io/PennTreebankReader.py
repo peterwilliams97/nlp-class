@@ -57,14 +57,12 @@ class TreeCollection:
             ff.close()
         return trees
 
-
 def read_trees(path, low_filenum=None, high_filenum=None):
     if low_filenum is None:
         low_filenum = 0
     if high_filenum is None:
         high_filenum = float('inf')
     return TreeCollection(path, low_filenum, high_filenum)
-
 
 if __name__ == '__main__':
     trees = read_trees(sys.argv[1])
