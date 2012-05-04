@@ -13,8 +13,21 @@ def PP(x):
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(x)
 
-def D(d): 
-    return dict([(str(k),str(v)) for k,v in d.items()])    
+def D(dct): 
+    """Convert keys and values of dct strings recursively"""
+    if isinstance(dct, dict):
+        return dict([(str(k),D(dct[k])) for k in dct])
+    return str(dct)   
+
+def show_table(scores):
+    """Print a CKY chart"""
+    print '-' * 80
+    for i,row in enumerate(scores):
+        for j, val in enumerate(row):
+            if j > i:
+                print '%2d,%2d:' % (i,j),
+                if val: print
+                PP(D(val))    
     
 class Parser:
     """*Effectively abstract) base class"""
@@ -171,14 +184,7 @@ class PCFGParser(Parser):
                                 #print 'added %s => %s' % (A,B)
                                 added = True
 
-        def show_table(scores):
-            print '-' * 80
-            for i,row in enumerate(scores):
-                for j, val in enumerate(row):
-                    if j > i:
-                        print '%2d,%2d:' % (i,j),
-                        if val: print
-                        PP(D(val))
+  
         if True:
             #s = [[D(d) for d in r] for r in scores]
             #PP(s)
