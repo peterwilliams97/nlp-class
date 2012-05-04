@@ -8,26 +8,38 @@ import pennParser.EnglishPennTreebankParseEvaluator as EnglishPennTreebankParseE
 import io.PennTreebankReader as PennTreebankReader
 import io.MASCTreebankReader as MASCTreebankReader
 
-def PP(x): 
+def PP(x, indent=4): 
+    """Pretty print x"""
     import pprint
-    pp = pprint.PrettyPrinter(indent=4)
+    pp = pprint.PrettyPrinter(indent=indent)
     pp.pprint(x)
 
 def D(dct): 
     """Convert keys and values of dct strings recursively"""
     if isinstance(dct, dict):
         return dict([(str(k),D(dct[k])) for k in dct])
+    elif isinstance(dct, list):
+        return [D(x) for x in dct]
+    elif isinstance(dct, tuple):
+        return tuple([D(x) for x in dct])    
     return str(dct)   
 
-def show_table(scores):
+def print_chart(chart, indent=4):
     """Print a CKY chart"""
     print '-' * 80
-    for i,row in enumerate(scores):
-        for j, val in enumerate(row):
-            if j > i:
-                print '%2d,%2d:' % (i,j),
-                if val: print
-                PP(D(val))    
+    if False:
+        for i,row in enumerate(chart):
+            for j, val in enumerate(row):
+                if j > i:
+                    print '%2d,%2d:' % (i,j),
+                    if val: print
+                    PP(D(val))    
+    else:
+        for span in range(len(chart) - 1, 0, -1):
+            for begin in range(len(chart) - span):
+                end = begin + span
+                print '%2d,%2d:' % (begin,end)
+                PP(D(chart[begin][end]), indent * (len(chart) - span)) 
     
 class Parser:
     """*Effectively abstract) base class"""
@@ -184,12 +196,32 @@ class PCFGParser(Parser):
                                 #print 'added %s => %s' % (A,B)
                                 added = True
 
-  
-        if True:
+
+        if False:
             #s = [[D(d) for d in r] for r in scores]
             #PP(s)
-            show_table(scores)
+            print_chart(scores)
             exit()
+            
+            
+        # Build tree from backpointers
+        top = scores[0][n]
+        PP(D(top))
+        #print [k.parent for k in top]
+        print 'top roots'
+        top_roots = dict([(k,top[k]) for k in top if k.parent == 'ROOT'])
+        PP(D(top_roots))
+        
+        out_trees = []
+        for root in top_roots:
+            tree = Tree(root)
+            out_trees.append(tree)
+            backptr = back[0][n][root]
+            while backptr:
+                print 'backptr', type(backptr)
+                PP(D(backptr))
+                exit()
+                    
 
 
 class BaselineParser(Parser):
