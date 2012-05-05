@@ -260,7 +260,7 @@ class PennTreeReader(TreeReader):
                 return None
             return self.read_tree(True)
         except IOError:
-            raise Exception("Error reading tree: %s\n" % self.ff.name)
+            raise Exception('Error reading tree: %s\n' % self.ff.name)
 
     def read_tree(self, is_root):
         self.read_left_paren()

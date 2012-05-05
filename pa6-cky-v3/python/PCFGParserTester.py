@@ -16,17 +16,15 @@ def PP(x, indent=4):
 
 def D(dct): 
     """Convert keys and values of dct strings recursively"""
-    if isinstance(dct, dict):
-        return dict([(str(k),D(dct[k])) for k in dct])
-    elif isinstance(dct, list):
-        return [D(x) for x in dct]
-    elif isinstance(dct, tuple):
-        return tuple([D(x) for x in dct])    
+    if isinstance(dct, dict):    return dict([(str(k),D(dct[k])) for k in dct])
+    elif isinstance(dct, list):  return [D(x) for x in dct]
+    elif isinstance(dct, tuple): return tuple([D(x) for x in dct])    
     return str(dct)   
 
-def print_chart(chart, indent=4):
+def print_chart(chart, name, indent=4):
     """Print a CKY chart"""
     print '-' * 80
+    print name
     if False:
         for i,row in enumerate(chart):
             for j, val in enumerate(row):
@@ -135,14 +133,13 @@ class PCFGParser(Parser):
         back = [[{} for j in range(n+1)] for i in range(n+1)]
         
         # First the Lexicon
-
-        # Scan left to right
         for i in range(n):
             word = sentence[i]
             for tag in lexicon.get_all_tags():
                 A = UnaryRule(tag, word)
                 A.score = lexicon.score_tagging(word, tag)
                 scores[i][i+1][A] = A.score 
+                back[i][i+1][A] = None
 
             # handle unaries
             added = True
@@ -159,7 +156,7 @@ class PCFGParser(Parser):
                             #print '***', prob
                             if prob > these_scores.get(A, 0): 
                                 scores[i][i+1][A] = prob
-                                back[i][i+1][A] = B 
+                                back[i][i+1][A] = [B] 
                                 #print 'added %s => %s' % (A,B)
                                 added = True
             
@@ -181,7 +178,7 @@ class PCFGParser(Parser):
                                 prob = B_scores[B] * C_scores[C] * A.score
                                 if prob > scores[begin][end].get(A, 0):
                                     scores[begin][end][A] = prob
-                                    back[begin][end][A] = (split, B, C)
+                                    back[begin][end][A] = [split, B, C]
                 # Handle unaries
                 added = True
                 while added:
@@ -192,18 +189,17 @@ class PCFGParser(Parser):
                             prob = B.score * these_scores[B] 
                             if prob > these_scores.get(A, 0): 
                                 scores[begin][end][A] = prob
-                                back[begin][end][A] = B 
+                                back[begin][end][A] = [B] 
                                 #print 'added %s => %s' % (A,B)
                                 added = True
-
 
         if False:
             #s = [[D(d) for d in r] for r in scores]
             #PP(s)
-            print_chart(scores)
+            print_chart(scores, 'scores')
+            print_chart(back, 'back')
             exit()
-            
-            
+
         # Build tree from backpointers
         top = scores[0][n]
         PP(D(top))
@@ -211,17 +207,43 @@ class PCFGParser(Parser):
         print 'top roots'
         top_roots = dict([(k,top[k]) for k in top if k.parent == 'ROOT'])
         PP(D(top_roots))
-        
+
+        def make_tree(begin, end, A, depth = 0):
+            s = '   ' * (depth)
+            print s, 'make_tree(%d, %d, "%s")' % (begin, end, str(A)),
+            backptrs = back[begin][end][A]
+            print D(backptrs)
+            tag = A.parent
+            if not backptrs: 
+                print s, '**', str(A), tag, A.child
+                return Tree(tag, [Tree(A.child)])
+            if len(backptrs) == 1:
+                [B] = backptrs
+                child = make_tree(begin, end, B, depth+1)
+                return Tree(tag, [child])
+            elif len(backptrs) == 3:
+                [split, B, C] = backptrs
+                childB = make_tree(begin, split, B, depth+1)
+                childC = make_tree(split, end, C, depth+1)
+                return Tree(tag, [childB, childC]) 
+
+        print '-' * 80
         out_trees = []
         for root in top_roots:
-            tree = Tree(root)
+            tree = make_tree(0, n, root)
+            print '!' * 80
             out_trees.append(tree)
-            backptr = back[0][n][root]
-            while backptr:
-                print 'backptr', type(backptr)
-                PP(D(backptr))
+            if False:
+                print '^' * 80
+                print Trees.PennTreeRenderer.render(tree)
+                print '.' * 80
                 exit()
-                    
+ 
+        out_trees = [TreeAnnotations.unannotate_tree(tree) for tree in out_trees]
+        print '^' * 80
+        print Trees.PennTreeRenderer.render(out_trees[0])
+        print ',' * 80
+        return out_trees[0]
 
 
 class BaselineParser(Parser):

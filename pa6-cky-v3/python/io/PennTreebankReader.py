@@ -10,8 +10,7 @@ class TreeCollection:
     """
 
     def __init__(self, path, low_filenum, high_filenum):
-        self.file_filter = NumberRangeFileFilter(
-                ".mrg", low_filenum, high_filenum, True)
+        self.file_filter = NumberRangeFileFilter('.mrg', low_filenum, high_filenum, True)
         self.files = self.get_files_under(path)
         self.trees = self.get_trees()
         self.index = 0
@@ -50,7 +49,7 @@ class TreeCollection:
         trees = []
         for i, tree_file in enumerate(self.files):
             if (i + 1) % 100 == 0:
-                print "Tree %d" % (i + 1)
+                print 'Tree %d' % (i + 1)
             ff = open(tree_file, 'rb')
             for tree in Trees.PennTreeReader(ff):
                 trees.append(tree)
