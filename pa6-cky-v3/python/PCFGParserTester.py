@@ -8,39 +8,35 @@ import pennParser.EnglishPennTreebankParseEvaluator as EnglishPennTreebankParseE
 import io.PennTreebankReader as PennTreebankReader
 import io.MASCTreebankReader as MASCTreebankReader
 
-def PP(x, indent=4): 
-    """Pretty print x"""
-    import pprint
-    pp = pprint.PrettyPrinter(indent=indent)
-    pp.pprint(x)
+_VERBOSE = False
+if _VERBOSE:
+    def P(x): print '> %s' % x
+    
+    def PP(x, indent=4): 
+        """Pretty print x"""
+        import pprint
+        pp = pprint.PrettyPrinter(indent=indent)
+        pp.pprint(x)
 
-def D(dct): 
-    """Convert keys and values of dct strings recursively"""
-    if isinstance(dct, dict):    return dict([(str(k),D(dct[k])) for k in dct])
-    elif isinstance(dct, list):  return [D(x) for x in dct]
-    elif isinstance(dct, tuple): return tuple([D(x) for x in dct])    
-    return str(dct)   
+    def D(dct): 
+        """Convert keys and values of dct strings recursively"""
+        if isinstance(dct, dict):    return dict([(str(k),D(dct[k])) for k in dct])
+        elif isinstance(dct, list):  return [D(x) for x in dct]
+        elif isinstance(dct, tuple): return tuple([D(x) for x in dct])    
+        return str(dct)   
 
-def print_chart(chart, name, indent=4):
-    """Print a CKY chart"""
-    print '-' * 80
-    print name
-    if False:
-        for i,row in enumerate(chart):
-            for j, val in enumerate(row):
-                if j > i:
-                    print '%2d,%2d:' % (i,j),
-                    if val: print
-                    PP(D(val))    
-    else:
+    def print_chart(chart, name, indent=4):
+        """Print a CKY chart"""
+        print '-' * 80
+        print name
         for span in range(len(chart) - 1, 0, -1):
             for begin in range(len(chart) - span):
                 end = begin + span
                 print '%2d,%2d:' % (begin,end)
                 PP(D(chart[begin][end]), indent * (len(chart) - span)) 
-    
+
 class Parser:
-    """*Effectively abstract) base class"""
+    """(Effectively abstract) base class"""
 
     def train(self, train_trees):
         pass
@@ -62,7 +58,7 @@ class PCFGParser(Parser):
         self.lexicon = Lexicon(annotated_trees)
         self.grammar = Grammar(annotated_trees)
 
-        if True:
+        if False:
             print 'trees'
             for tree in annotated_trees: print tree
             print 'lexicon'
@@ -122,10 +118,10 @@ class PCFGParser(Parser):
         grammar = self.grammar
         nonterms = grammar.binary_rules_by_left_child
         
-        print 'grammar.unary_rules_by_child'
-        PP(dict([(k,[str(s) for s in v]) for k,v in grammar.unary_rules_by_child.items()]))
+        #print 'grammar.unary_rules_by_child'
+        #PP(dict([(k,[str(s) for s in v]) for k,v in grammar.unary_rules_by_child.items()]))
         rules = [str(s) for s in grammar.unary_rules_by_child['N']]
-        print 'grammar.unary_rules_by_child[%s]=%s' % ('N', rules)
+        #print 'grammar.unary_rules_by_child[%s]=%s' % ('N', rules)
             
         n = len(sentence)
         m = len(nonterms)
@@ -164,7 +160,7 @@ class PCFGParser(Parser):
         for span in range(2, n + 1):
             for begin in range(n - span + 1):
                 end = begin + span
-                print '* begin,end = %d,%d' % (begin, end)
+                #print '* begin,end = %d,%d' % (begin, end)
                 for split in range(begin + 1, end):
                     B_scores = scores[begin][split]
                     C_scores = scores[split][end]
@@ -193,29 +189,41 @@ class PCFGParser(Parser):
                                 #print 'added %s => %s' % (A,B)
                                 added = True
 
-        if False:
+        if False and _VERBOSE:
             #s = [[D(d) for d in r] for r in scores]
             #PP(s)
             print_chart(scores, 'scores')
             print_chart(back, 'back')
-            exit()
+            #exit()
 
         # Build tree from backpointers
         top = scores[0][n]
-        PP(D(top))
+        if True and _VERBOSE:
+            print 'top'
+            PP(D(top))
+            #exit()
         #print [k.parent for k in top]
-        print 'top roots'
+        #print 'top roots'
         top_roots = dict([(k,top[k]) for k in top if k.parent == 'ROOT'])
-        PP(D(top_roots))
-
+        if True and _VERBOSE:
+            print 'top_roots'
+            PP(D(top_roots))
+        # Take highest probabilty
+        k = max(top_roots, key=lambda x: top_roots[x])
+        top_roots = {k:top[k]}
+        if True and _VERBOSE:
+            print 'the top_root'
+            PP(D(top_roots))
+            exit()
+            
         def make_tree(begin, end, A, depth = 0):
             s = '   ' * (depth)
-            print s, 'make_tree(%d, %d, "%s")' % (begin, end, str(A)),
+            #print s, 'make_tree(%d, %d, "%s")' % (begin, end, str(A)),
             backptrs = back[begin][end][A]
-            print D(backptrs)
+            #print D(backptrs)
             tag = A.parent
             if not backptrs: 
-                print s, '**', str(A), tag, A.child
+                #print s, '**', str(A), tag, A.child
                 return Tree(tag, [Tree(A.child)])
             if len(backptrs) == 1:
                 [B] = backptrs
@@ -227,11 +235,11 @@ class PCFGParser(Parser):
                 childC = make_tree(split, end, C, depth+1)
                 return Tree(tag, [childB, childC]) 
 
-        print '-' * 80
+        #print '-' * 80
         out_trees = []
         for root in top_roots:
             tree = make_tree(0, n, root)
-            print '!' * 80
+            #print '!' * 80
             out_trees.append(tree)
             if False:
                 print '^' * 80
@@ -240,11 +248,11 @@ class PCFGParser(Parser):
                 exit()
  
         out_trees = [TreeAnnotations.unannotate_tree(tree) for tree in out_trees]
-        print '^' * 80
-        print Trees.PennTreeRenderer.render(out_trees[0])
-        print ',' * 80
+        if False:
+            print '^' * 80
+            print Trees.PennTreeRenderer.render(out_trees[0])
+            print ',' * 80
         return out_trees[0]
-
 
 class BaselineParser(Parser):
 

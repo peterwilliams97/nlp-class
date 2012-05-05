@@ -1,8 +1,8 @@
 
-# You may find this shell script helpful.
+REM You may find this shell script helpful.
 
 SET DATA=masc
-SET DATA=miniTest
+REM SET DATA=miniTest
 
 REM --parser PCFGParser \
 
