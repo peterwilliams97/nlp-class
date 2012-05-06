@@ -8,6 +8,12 @@ import pennParser.EnglishPennTreebankParseEvaluator as EnglishPennTreebankParseE
 import io.PennTreebankReader as PennTreebankReader
 import io.MASCTreebankReader as MASCTreebankReader
 
+
+import logging
+logging.basicConfig(#filename='test2.log', 
+        level=logging.ERROR, 
+        format='%(asctime)s [%(levelname)s] %(message)s')
+
 _VERBOSE = False
 if _VERBOSE:
     def P(x): print '> %s' % x
@@ -113,10 +119,10 @@ class PCFGParser(Parser):
                                 added = true           
         """
         # TODO: implement this method
-        print sentence
+        logging.debug('get_best_parse(%s)' % sentence)
         lexicon = self.lexicon
         grammar = self.grammar
-        nonterms = grammar.binary_rules_by_left_child
+        #nonterms = grammar.binary_rules_by_left_child
         
         #print 'grammar.unary_rules_by_child'
         #PP(dict([(k,[str(s) for s in v]) for k,v in grammar.unary_rules_by_child.items()]))
@@ -124,11 +130,12 @@ class PCFGParser(Parser):
         #print 'grammar.unary_rules_by_child[%s]=%s' % ('N', rules)
             
         n = len(sentence)
-        m = len(nonterms)
+        #m = len(nonterms)
         scores = [[{} for j in range(n+1)] for i in range(n+1)]
         back = [[{} for j in range(n+1)] for i in range(n+1)]
         
         # First the Lexicon
+        logging.debug('start lexicon n=%d' % n)
         for i in range(n):
             word = sentence[i]
             for tag in lexicon.get_all_tags():
@@ -144,38 +151,34 @@ class PCFGParser(Parser):
                 # Don't modify the dict we are iterating
                 these_scores = copy.copy(scores[i][i+1])
                 for B in these_scores:
-                    #print 'B*', B, these_scores[B]
                     for A in grammar.get_unary_rules_by_child(B.parent):
-                        #print 'A**', A, these_scores.get(A, 0)
-                        if these_scores[B] > 0:
+                         if these_scores[B] > 0:
                             prob = B.score * these_scores[B] 
-                            #print '***', prob
                             if prob > these_scores.get(A, 0): 
                                 scores[i][i+1][A] = prob
                                 back[i][i+1][A] = [B] 
-                                #print 'added %s => %s' % (A,B)
                                 added = True
             
-        # Do higher layers  
+        # Do higher layers
+        logging.debug('start higher layers')    
         for span in range(2, n + 1):
             for begin in range(n - span + 1):
                 end = begin + span
-                #print '* begin,end = %d,%d' % (begin, end)
+                #logging.debug(' binaries: [%d,%d]' % (begin,end)) 
                 for split in range(begin + 1, end):
                     B_scores = scores[begin][split]
                     C_scores = scores[split][end]
-                    C_parents = [c.parent for c in C_scores]
                     for B in B_scores:
                         for A in grammar.get_binary_rules_by_left_child(B.parent):
                             C2_scores = [C for C in C_scores if C.parent == A.right_child]
                             for C in C2_scores:
                                 # Now have A which has B as left child and C as right child 
-                                #print 'C*', C, C_scores[C]
                                 prob = B_scores[B] * C_scores[C] * A.score
                                 if prob > scores[begin][end].get(A, 0):
                                     scores[begin][end][A] = prob
                                     back[begin][end][A] = [split, B, C]
                 # Handle unaries
+                #logging.debug(' unaries: [%d,%d]' % (begin,end)) 
                 added = True
                 while added:
                     added = False
@@ -236,6 +239,7 @@ class PCFGParser(Parser):
                 return Tree(tag, [childB, childC]) 
 
         #print '-' * 80
+        logging.debug('start making tree')
         out_trees = []
         for root in top_roots:
             tree = make_tree(0, n, root)
@@ -252,6 +256,7 @@ class PCFGParser(Parser):
             print '^' * 80
             print Trees.PennTreeRenderer.render(out_trees[0])
             print ',' * 80
+        logging.debug('done tree')    
         return out_trees[0]
 
 class BaselineParser(Parser):
@@ -622,7 +627,7 @@ MAX_LENGTH = 20
 def test_parser(parser, test_trees):
     evaluator = EnglishPennTreebankParseEvaluator.LabeledConstituentEval(
             ['ROOT'], set(["''", "``", ".", ":", ","]))
-    for test_tree in test_trees:
+    for test_tree in test_trees: 
         test_sentence = test_tree.get_yield()
         if len(test_sentence) > 20:
             continue
@@ -691,14 +696,13 @@ if __name__ == '__main__':
         base_path += 'parser/'
 
         # training data: MASC train
+        logging.info('Loading MASC training trees')
         print 'Loading MASC training trees... from: %smasc/train' % base_path
         train_trees.extend(read_masc_trees('%smasc/train' % base_path, 0, 38))
         print 'done.'
         print 'Train trees size: %d' % len(train_trees)
-        print 'First train tree: %s' % \
-                Trees.PennTreeRenderer.render(train_trees[0])
-        print 'Last train tree: %s' % \
-                Trees.PennTreeRenderer.render(train_trees[-1])
+        print 'First train tree: %s' % Trees.PennTreeRenderer.render(train_trees[0])
+        print 'Last train tree: %s' % Trees.PennTreeRenderer.render(train_trees[-1])
 
         # test data: MASC devtest
         print 'Loading MASC test trees...'
@@ -706,17 +710,19 @@ if __name__ == '__main__':
         #test_trees.extend(read_masc_trees('%smasc/blindtest' % base_path, 0, 8))
         print 'done.'
         print 'Test trees size: %d' % len(test_trees)
-        print 'First test tree: %s' % \
-                Trees.PennTreeRenderer.render(test_trees[0])
-        print 'Last test tree: %s' % \
-                Trees.PennTreeRenderer.render(test_trees[-1])
+        print 'First test tree: %s' % Trees.PennTreeRenderer.render(test_trees[0])
+        print 'Last test tree: %s' %  Trees.PennTreeRenderer.render(test_trees[-1])
 
     if data_set not in ['miniTest', 'masc']:
         raise Exception('Bad data set: %s: use miniTest or masc.' % data_set)
 
     print ''
     print 'Training parser...'
+    logging.info('Training parser')
     parser.train(train_trees)
 
     print 'Testing parser'
+    logging.info('Testing parser')
     test_parser(parser, test_trees)
+    
+    logging.info('done')
