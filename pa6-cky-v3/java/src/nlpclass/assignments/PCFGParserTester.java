@@ -659,7 +659,7 @@ public class PCFGParserTester {
     options.putAll(CommandLineUtils.simpleCommandLineParser(args));
     System.out.println("PCFGParserTester options:");
     for (Map.Entry<String, String> entry: options.entrySet()) {
-      System.out.printf("  %-12s: %s%n", entry.getKey(), entry.getValue());
+        System.out.printf("  %-12s: %s%n", entry.getKey(), entry.getValue());
     }
     System.out.println();
 
@@ -667,24 +667,25 @@ public class PCFGParserTester {
 
     Parser parser;
     try {
-      Class parserClass = Class.forName(options.get("--parser"));
-      parser = (Parser) parserClass.newInstance();
+        Class parserClass = Class.forName(options.get("--parser"));
+        parser = (Parser) parserClass.newInstance();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+        throw new RuntimeException(e);
     }
     System.out.println("Using parser: " + parser);
 
     String basePath = options.get("--path");
     String preBasePath = basePath;
     String dataSet = options.get("--data");
-    if (!basePath.endsWith("/"))
-      basePath += "/";
+    if (!basePath.endsWith("/")) {
+        basePath += "/";
+    }
     //basePath += dataSet;
     System.out.println("Data will be loaded from: " + basePath + "\n");
 
-    List<Tree<String>> trainTrees = new ArrayList<Tree<String>>(),
-    				   validationTrees = new ArrayList<Tree<String>>(),
-    				   testTrees = new ArrayList<Tree<String>>();
+    List<Tree<String>> trainTrees = new ArrayList<Tree<String>>();
+    List<Tree<String>> validationTrees = new ArrayList<Tree<String>>();
+    List<Tree<String>> testTrees = new ArrayList<Tree<String>>();
 
     if (dataSet.equals("miniTest")) {
       // training data: first 3 of 4 datums
