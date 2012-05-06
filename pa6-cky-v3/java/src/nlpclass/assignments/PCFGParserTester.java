@@ -21,43 +21,162 @@ import java.util.regex.Pattern;
  */
 public class PCFGParserTester {
 
-  // Parser interface ===========================================================
+    // Parser interface ===========================================================
 
-  /**
-   * Parsers are required to map sentences to trees.  How a parser is
-   * constructed and trained is not specified.
-   */
-  public static interface Parser {
-    public void train(List<Tree<String>> trainTrees);
-    public Tree<String> getBestParse(List<String> sentence);
-  }
-
-
-  // PCFGParser =================================================================
-
-  /**
-   * The PCFG Parser you will implement.
-   */
-  public static class PCFGParser implements Parser {
-    
-    private Grammar grammar;
-    private Lexicon lexicon;
-
-    
-    public void train(List<Tree<String>> trainTrees) {
-      // TODO: before you generate your grammar, the training trees
-      // need to be binarized so that rules are at most binary
-
-      lexicon = new Lexicon(trainTrees);
-      grammar = new Grammar(trainTrees);
-
+    /**
+     * Parsers are required to map sentences to trees.  How a parser is
+     * constructed and trained is not specified.
+     */
+    public static interface Parser {
+        public void train(List<Tree<String>> trainTrees);
+        public Tree<String> getBestParse(List<String> sentence);
     }
 
+    // PCFGParser =================================================================
+
+    /**
+     * The PCFG Parser you will implement.
+    */
+    public static class PCFGParser implements Parser {
+    
+        private Grammar grammar;
+        private Lexicon lexicon;
+
+        public void train(List<Tree<String>> trainTrees) {
+            // TODO: before you generate your grammar, the training trees
+            // need to be binarized so that rules are at most binary
+
+            List<Tree<String>> annotatedTrees = new ArrayList<Tree<String>>();
+            for (Tree<String> tree: trainTrees) {
+                 annotatedTrees.add(TreeAnnotations.annotateTree(tree));
+            }
+            lexicon = new Lexicon(annotatedTrees);
+            grammar = new Grammar(annotatedTrees);
+        }
+        
+        private static String getParent(Object o) {
+            if (o instanceof BinaryRule) {
+                return ((BinaryRule)o).getParent();
+            } else if (o instanceof UnaryRule) {
+                return ((UnaryRule)o).getParent();
+            } else {
+                return null;
+            }
+            
+        }
     
     public Tree<String> getBestParse(List<String> sentence) {
-      // TODO: implement this method
-
-      return null;
+        // TODO: implement this method
+        int n = sentence.size();
+       
+        List<List<Map<Object,Double>>> scores = new ArrayList<List<Map<Object,Double>>>(n+1);
+        for (int i = 0; i < n+1; i++) {
+            List<Map<Object,Double>> row = new ArrayList<Map<Object,Double>>(n+1);
+            for (int j = 0; j < n+1; j++) {
+                row.add(new HashMap<Object,Double>());
+            }
+            scores.add(row);
+        }
+        List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs = 
+            new ArrayList<List<Map<Object,Triplet<Integer,Object,Object>>>>(n+1);
+        for (int i = 0; i < n+1; i++) {
+            List<Map<Object,Triplet<Integer,Object,Object>>> row = new ArrayList<Map<Object,Triplet<Integer,Object,Object>>>(n+1);
+            for (int j = 0; j < n+1; j++) {
+                row.add(new HashMap<Object,Triplet<Integer,Object,Object>>());
+            }
+            backs.add(row);
+        }
+        
+        System.out.println("scores=" + scores.size() + "x" + scores.get(0).size());
+        System.out.println("backs=" + backs.size() + "x" + backs.get(0).size());
+                      
+        // First the Lexicon
+        
+        for (int i = 0; i < n; i++) {
+            String word = sentence.get(i);
+            for (String tag : lexicon.getAllTags()) {
+                UnaryRule A = new UnaryRule(tag, word);
+                A.setScore(lexicon.scoreTagging(word, tag));
+                scores.get(i).get(i+1).put(A, A.getScore()); 
+                backs.get(i).get(i+1).put(A, null);
+            }
+    
+            // Handle unaries
+            boolean added = true;
+            while (added) {
+                added = false;
+                // Don't modify the dict we are iterating
+                Map<Object,Double> theseScores = new HashMap(scores.get(i).get(i+1));
+                for (Object oB : theseScores.keySet()) {
+                    UnaryRule B = (UnaryRule)oB;
+                    for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
+                         if (scores.get(i).get(i+1).get(B) > 0.0) {
+                            double prob = B.getScore() * theseScores.get(B); 
+                            if (!theseScores.containsKey(A) || prob > theseScores.get(A)) {
+                                scores.get(i).get(i+1).put(A, prob);
+                                backs.get(i).get(i+1).put(A, new Triplet(-1, B, null));
+                            }
+                        }
+                    } 
+                }    
+            }
+        }
+        
+        // Do higher layers  
+        // Naming is based on rules: A -> B,C
+        for (int span = 2; span <= n; span++) {
+            for (int begin = 0; begin <= n - span; begin++) {
+                int end = begin + span;
+                Map<Object,Double> A_scores = scores.get(begin).get(end);
+                Map<Object,Triplet<Integer,Object,Object>> A_backs = backs.get(begin).get(end);
+                
+                for (int split = begin + 1; split < end; split++) {
+                    Map<Object,Double> B_scores = scores.get(begin).get(split);
+                    Map<Object,Double> C_scores = scores.get(split).get(end);
+                    for (Object B : B_scores.keySet()) { 
+                        //BinaryRule B = (BinaryRule)oB;
+                        for (BinaryRule A : grammar.getBinaryRulesByLeftChild(getParent(B))) {
+                            for (Object C : C_scores.keySet()) {
+                                 if (getParent(C) == A.getRightChild()) {
+                                    // Now have A which has B as left child and C as right child 
+                                    double prob = A.getScore() * B_scores.get(B) * C_scores.get(C);
+                                    if (prob > A_scores.get(A)) {
+                                        A_scores.put(A, prob);
+                                        A_backs.put(A, new Triplet(-1, B, C));
+                                    }
+                                } 
+                            }
+                        }
+                    }
+                }
+                
+                // Handle unaries
+                boolean added = true;
+                while (added) {
+                    added = false;
+                    for (Object oB : A_scores.keySet()) {
+                        BinaryRule B = (BinaryRule)oB;
+                        for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
+                            double prob = B.getScore() * A_scores.get(B); 
+                            if (prob > A_scores.get(A)) {
+                                A_scores.put(A, prob);
+                                A_backs.put(A, new Triplet(-1, B, null));
+                                added = true;
+                            }
+                        }
+                    }
+                }
+            }    
+        }
+        
+        Map<Object,Double> topOfChart = scores.get(0).get(n);
+        
+        System.out.println("topOfChart: " + topOfChart.size());
+        for (Object o: topOfChart.keySet()) {
+            System.out.println("o=" + o + ", score=" + topOfChart.get(o));
+        }
+        
+        return null;
     }
 
   }
@@ -70,22 +189,22 @@ public class PCFGParserTester {
    * parse of that tag sequence, or builds a right-branching parse for unknown
    * tag sequences.
    */
-  public static class BaselineParser implements Parser {
+    public static class BaselineParser implements Parser {
 
-    CounterMap<List<String>,Tree<String>> knownParses;
-    CounterMap<Integer,String> spanToCategories;
-    Lexicon lexicon;
+        CounterMap<List<String>,Tree<String>> knownParses;
+        CounterMap<Integer,String> spanToCategories;
+        Lexicon lexicon;
 
-    public void train(List<Tree<String>> trainTrees) {
-      lexicon = new Lexicon(trainTrees);
-      knownParses = new CounterMap<List<String>, Tree<String>>();
-      spanToCategories = new CounterMap<Integer, String>();
-      for (Tree<String> trainTree : trainTrees) {
-        List<String> tags = trainTree.getPreTerminalYield();
-        knownParses.incrementCount(tags, trainTree, 1.0);
-        tallySpans(trainTree, 0);
-      }
-    }
+        public void train(List<Tree<String>> trainTrees) {
+            lexicon = new Lexicon(trainTrees);
+            knownParses = new CounterMap<List<String>, Tree<String>>();
+            spanToCategories = new CounterMap<Integer, String>();
+            for (Tree<String> trainTree : trainTrees) {
+                List<String> tags = trainTree.getPreTerminalYield();
+                knownParses.incrementCount(tags, trainTree, 1.0);
+                tallySpans(trainTree, 0);
+            }
+        }
 
     public Tree<String> getBestParse(List<String> sentence) {
       List<String> tags = getBaselineTagging(sentence);
@@ -99,7 +218,8 @@ public class PCFGParserTester {
      * uses the most common tag for the word in the training corpus.
      * For all other non-terminals it uses the tag that is most common
      * in training corpus of tree of the same size span as the tree
-     * that is being labeled. */
+     * that is being labeled. 
+     */
     private Tree<String> buildRightBranchParse(List<String> words, List<String> tags) {
       int currentPosition = words.size() - 1;
       Tree<String> rightBranchTree = buildTagTree(words, tags, currentPosition);
@@ -163,17 +283,19 @@ public class PCFGParserTester {
     }
 
     private int tallySpans(Tree<String> tree, int start) {
-      if (tree.isLeaf() || tree.isPreTerminal()) 
-        return 1;
-      int end = start;
-      for (Tree<String> child : tree.getChildren()) {
-        int childSpan = tallySpans(child, end);
-        end += childSpan;
-      }
-      String category = tree.getLabel();
-      if (! category.equals("ROOT"))
-        spanToCategories.incrementCount(end - start, category, 1.0);
-      return end - start;
+        if (tree.isLeaf() || tree.isPreTerminal()) {
+            return 1;
+        }
+        int end = start;
+        for (Tree<String> child : tree.getChildren()) {
+            int childSpan = tallySpans(child, end);
+            end += childSpan;
+        }
+        String category = tree.getLabel();
+        if (! category.equals("ROOT")) {
+            spanToCategories.incrementCount(end - start, category, 1.0);
+        }
+        return end - start;
     }
 
   }
@@ -327,15 +449,13 @@ public class PCFGParserTester {
    */
   public static class Grammar {
 
-    Map<String, List<BinaryRule>> binaryRulesByLeftChild = 
-      new HashMap<String, List<BinaryRule>>();
-    Map<String, List<BinaryRule>> binaryRulesByRightChild = 
-      new HashMap<String, List<BinaryRule>>();
-    Map<String, List<UnaryRule>> unaryRulesByChild = 
-      new HashMap<String, List<UnaryRule>>();
+    Map<String, List<BinaryRule>> binaryRulesByLeftChild = new HashMap<String, List<BinaryRule>>();
+    Map<String, List<BinaryRule>> binaryRulesByRightChild = new HashMap<String, List<BinaryRule>>();
+    Map<String, List<UnaryRule>> unaryRulesByChild = new HashMap<String, List<UnaryRule>>();
 
     /* Rules in grammar are indexed by child for easy access when
-     * doing bottom up parsing. */
+     * doing bottom up parsing. 
+     */
     public List<BinaryRule> getBinaryRulesByLeftChild(String leftChild) {
       return CollectionUtils.getValueList(binaryRulesByLeftChild, leftChild);
     }
@@ -382,7 +502,8 @@ public class PCFGParserTester {
 
     /* A builds PCFG using the observed counts of binary and unary
      * productions in the training trees to estimate the probabilities
-     * for those rules.  */ 
+     * for those rules.  
+     */ 
     public Grammar(List<Tree<String>> trainTrees) {
       Counter<UnaryRule> unaryRuleCounter = new Counter<UnaryRule>();
       Counter<BinaryRule> binaryRuleCounter = new Counter<BinaryRule>();
@@ -391,9 +512,7 @@ public class PCFGParserTester {
         tallyTree(trainTree, symbolCounter, unaryRuleCounter, binaryRuleCounter);
       }
       for (UnaryRule unaryRule : unaryRuleCounter.keySet()) {
-        double unaryProbability = 
-          unaryRuleCounter.getCount(unaryRule) / 
-          symbolCounter.getCount(unaryRule.getParent());
+        double unaryProbability = unaryRuleCounter.getCount(unaryRule) / symbolCounter.getCount(unaryRule.getParent());
         unaryRule.setScore(unaryProbability);
         addUnary(unaryRule);
       }
@@ -505,7 +624,6 @@ public class PCFGParserTester {
     }
   }
 
-
   // UnaryRule ==================================================================
 
   /** A unary grammar rule with score representing its probability. */
@@ -586,34 +704,32 @@ public class PCFGParserTester {
     return eval.display(true);
   }
   
-  private static List<Tree<String>> readTrees(String basePath, int low,
-			int high) {
-		Collection<Tree<String>> trees = PennTreebankReader.readTrees(basePath,
-				low, high);
-		// normalize trees
-		Trees.TreeTransformer<String> treeTransformer = new Trees.StandardTreeNormalizer();
-		List<Tree<String>> normalizedTreeList = new ArrayList<Tree<String>>();
-		for (Tree<String> tree : trees) {
-			Tree<String> normalizedTree = treeTransformer.transformTree(tree);
-			// System.out.println(Trees.PennTreeRenderer.render(normalizedTree));
-			normalizedTreeList.add(normalizedTree);
-		}
-		return normalizedTreeList;
-	}
-
-	private static List<Tree<String>> readTrees(String basePath) {
-		Collection<Tree<String>> trees = PennTreebankReader.readTrees(basePath);
-		// normalize trees
-		Trees.TreeTransformer<String> treeTransformer = new Trees.StandardTreeNormalizer();
-	  List<Tree<String>> normalizedTreeList = new ArrayList<Tree<String>>();
-    for (Tree<String> tree : trees) {
-      //      System.err.println(tree);
-      Tree<String> normalizedTree = treeTransformer.transformTree(tree);
-      // System.out.println(Trees.PennTreeRenderer.render(normalizedTree));
-      normalizedTreeList.add(normalizedTree);
+    private static List<Tree<String>> readTrees(String basePath, int low, int high) {
+        Collection<Tree<String>> trees = PennTreebankReader.readTrees(basePath, low, high);
+        // normalize trees
+        Trees.TreeTransformer<String> treeTransformer = new Trees.StandardTreeNormalizer();
+        List<Tree<String>> normalizedTreeList = new ArrayList<Tree<String>>();
+        for (Tree<String> tree : trees) {
+            Tree<String> normalizedTree = treeTransformer.transformTree(tree);
+            // System.out.println(Trees.PennTreeRenderer.render(normalizedTree));
+            normalizedTreeList.add(normalizedTree);
+        }
+        return normalizedTreeList;
     }
-    return normalizedTreeList;
-  }
+
+    private static List<Tree<String>> readTrees(String basePath) {
+        Collection<Tree<String>> trees = PennTreebankReader.readTrees(basePath);
+        // normalize trees
+        Trees.TreeTransformer<String> treeTransformer = new Trees.StandardTreeNormalizer();
+        List<Tree<String>> normalizedTreeList = new ArrayList<Tree<String>>();
+        for (Tree<String> tree : trees) {
+          //      System.err.println(tree);
+          Tree<String> normalizedTree = treeTransformer.transformTree(tree);
+          // System.out.println(Trees.PennTreeRenderer.render(normalizedTree));
+          normalizedTreeList.add(normalizedTree);
+        }
+        return normalizedTreeList;
+    }
 
 
   private static List<Tree<String>> readMASCTrees(String basePath, int low, int high) {
@@ -688,40 +804,39 @@ public class PCFGParserTester {
     List<Tree<String>> testTrees = new ArrayList<Tree<String>>();
 
     if (dataSet.equals("miniTest")) {
-      // training data: first 3 of 4 datums
-      basePath += "parser/"+dataSet;
-      System.out.println("Loading training trees...");
-      trainTrees = readTrees(basePath, 1, 3);
-      System.out.println("done.");
+        // training data: first 3 of 4 datums
+        basePath += "parser/"+dataSet;
+        System.out.println("Loading training trees...");
+        trainTrees = readTrees(basePath, 1, 3);
+        System.out.println("done.");
 
-      // test data: last of 4 datums
-      System.out.println("Loading test trees...");
-      testTrees = readTrees(basePath, 4, 4);
-      System.out.println("done.");
-
+        // test data: last of 4 datums
+        System.out.println("Loading test trees...");
+        testTrees = readTrees(basePath, 4, 4);
+        System.out.println("done.");
     }
-    if (dataSet.equals("masc")) {
-      basePath += "parser/";
-      // training data: MASC train
-      System.out.println("Loading MASC training trees... from: "+basePath+"masc/train");
-      trainTrees.addAll(readMASCTrees(basePath+"masc/train", 0, 38));
-      System.out.println("done.");
-      System.out.println("Train trees size: "+trainTrees.size());
+    else if (dataSet.equals("masc")) {
+        basePath += "parser/";
+        // training data: MASC train
+        System.out.println("Loading MASC training trees... from: "+basePath+"masc/train");
+        trainTrees.addAll(readMASCTrees(basePath+"masc/train", 0, 38));
+        System.out.println("done.");
+        System.out.println("Train trees size: "+trainTrees.size());
 
-      System.out.println("First train tree: "+Trees.PennTreeRenderer.render(trainTrees.get(0)));
-      System.out.println("Last train tree: "+Trees.PennTreeRenderer.render(trainTrees.get(trainTrees.size()-1)));
-      
-      // test data: MASC devtest
-      System.out.println("Loading MASC test trees...");
-      testTrees.addAll(readMASCTrees(basePath+"masc/devtest", 0, 11));
-      //testTrees.addAll(readMASCTrees(basePath+"masc/blindtest", 0, 8));
-      System.out.println("Test trees size: "+testTrees.size());
-      System.out.println("done.");
-      
-      System.out.println("First test tree: "+Trees.PennTreeRenderer.render(testTrees.get(0)));
-      System.out.println("Last test tree: "+Trees.PennTreeRenderer.render(testTrees.get(testTrees.size()-1)));
+        System.out.println("First train tree: "+Trees.PennTreeRenderer.render(trainTrees.get(0)));
+        System.out.println("Last train tree: "+Trees.PennTreeRenderer.render(trainTrees.get(trainTrees.size()-1)));
+
+        // test data: MASC devtest
+        System.out.println("Loading MASC test trees...");
+        testTrees.addAll(readMASCTrees(basePath+"masc/devtest", 0, 11));
+        //testTrees.addAll(readMASCTrees(basePath+"masc/blindtest", 0, 8));
+        System.out.println("Test trees size: "+testTrees.size());
+        System.out.println("done.");
+
+        System.out.println("First test tree: "+Trees.PennTreeRenderer.render(testTrees.get(0)));
+        System.out.println("Last test tree: "+Trees.PennTreeRenderer.render(testTrees.get(testTrees.size()-1)));
     }
-    if (!dataSet.equals("miniTest") && !dataSet.equals("masc")){
+    else if (!dataSet.equals("miniTest") && !dataSet.equals("masc")){
       throw new RuntimeException("Bad data set: " + dataSet + ": use miniTest or masc."); 
     }
 
