@@ -51,16 +51,19 @@ public class PCFGParserTester {
                  annotatedTrees.add(TreeAnnotations.annotateTree(tree));
             }
             
+            /*
             System.out.println("trainTrees: " );
             for (Tree<String> tree: trainTrees)  System.out.println("  " + tree);
             System.out.println("annotatedTrees: " );
             for (Tree<String> tree: annotatedTrees)  System.out.println("  " + tree);
-             
+             */
             lexicon = new Lexicon(annotatedTrees);
             grammar = new Grammar(annotatedTrees);
             
+            /*
             System.out.println("lexicon: " + lexicon.getAllTags());
             System.out.println("grammar: " + grammar);
+            */
             //System.exit(-1);
         }
         
@@ -114,13 +117,13 @@ public class PCFGParserTester {
             Triplet<Integer,Object,Object> backptr = backs.get(begin).get(end).get(A);
             String tag = getParent(A);
 
-            System.out.println("makeTree: begin=" + begin + ",end=" + end + ",A=" + A + " : " + "backptr=" + backptr);
+            //System.out.println("makeTree: begin=" + begin + ",end=" + end + ",A=" + A + " : " + "backptr=" + backptr);
 
             List<Tree<String>> children = new ArrayList<Tree<String>>();
             
             if (backptr == null) { 
                 // No back pointer. Terminal
-                Tree<String> child = new  Tree<String>(((UnaryRule)A).getChild()); 
+                Tree<String> child = new Tree<String>(((UnaryRule)A).getChild()); 
                 children.add(child);
             } else  if (backptr.getFirst() < 0) {
                 // Single back pointer. Unary rule 
@@ -143,6 +146,8 @@ public class PCFGParserTester {
         public Tree<String> getBestParse(List<String> sentence) {
             // TODO: implement this method
             int n = sentence.size();
+            
+            System.out.println("getBestParse: n=" + n);
            
             List<List<Counter<Object>>> scores = new ArrayList<List<Counter<Object>>>(n+1);
             for (int i = 0; i < n+1; i++) {
@@ -162,10 +167,11 @@ public class PCFGParserTester {
                 backs.add(row);
             }
             
+            /*
             System.out.println("scores=" + scores.size() + "x" + scores.get(0).size());
             System.out.println("backs=" + backs.size() + "x" + backs.get(0).size());
             printChart(scores, backs, "scores");
-                          
+            */              
             // First the Lexicon
             
             for (int i = 0; i < n; i++) {
@@ -201,12 +207,12 @@ public class PCFGParserTester {
                 }
             }
 
-            printChart(scores, backs, "scores with Lexicon");
+            //printChart(scores, backs, "scores with Lexicon");
 
             // Do higher layers  
             // Naming is based on rules: A -> B,C
             for (int span = 2; span < n + 1; span++) {
-                System.out.println("span=" + span);
+                //System.out.println("span=" + span);
                 for (int begin = 0; begin < n + 1 - span; begin++) {
                     int end = begin + span;
                     Counter<Object> A_scores = scores.get(begin).get(end);
@@ -220,15 +226,15 @@ public class PCFGParserTester {
                         //        + ", B_scores=" + B_scores.size() + ", C_scores=" + C_scores.size());
                         for (Object B : B_scores.keySet()) { 
                             //BinaryRule B = (BinaryRule)oB;
-                            System.out.println(" B=" + B);
+                            //System.out.println(" B=" + B);
                             for (BinaryRule A : grammar.getBinaryRulesByLeftChild(getParent(B))) {
-                                System.out.println("  * A=" + A);
+                                //System.out.println("  * A=" + A);
                                 for (Object C : C_scores.keySet()) {
                                     //System.out.println("   ** C=" + C);
                                     //System.out.println("        -- " + getParent(C));
                                     //System.out.println("        ++ " + A.getRightChild());
                                     if (getParent(C) == A.getRightChild()) {
-                                        System.out.println("  C=" + C);
+                                        //System.out.println("  C=" + C);
                                         // We now have A which has B as left child and C as right child 
                                         double prob = A.getScore() * B_scores.getCount(B) * C_scores.getCount(C);
                                         if (prob > A_scores.getCount(A)) {
@@ -263,20 +269,29 @@ public class PCFGParserTester {
                 }    
             }
 
-            printChart(scores, backs, "scores with Lexicon and Grammar");
+            //printChart(scores, backs, "scores with Lexicon and Grammar");
             
             Counter<Object> topOfChart = scores.get(0).get(n);
             
             System.out.println("topOfChart: " + topOfChart.size());
+            /*
             for (Object o: topOfChart.keySet()) {
                 System.out.println("o=" + o + ", score=" + topOfChart.getCount(o));
             }
+            */
 
             Object bestKey = topOfChart.argMax();
             System.out.println("bestKey=" + bestKey);
             
             Tree<String> result = makeTree(backs, 0, n, bestKey);
+            List<Tree<String>> children = new ArrayList<Tree<String>>();
+            children.add(result);
+            result = new Tree<String>("ROOT", children); // !@#$
             
+            System.out.println("==================================================");
+            System.out.println(result);
+            System.out.println("====================^^^^^^========================");
+
             return TreeAnnotations.unAnnotateTree(result);
         }
         
@@ -468,7 +483,7 @@ public class PCFGParserTester {
             Tree<String> unAnnotatedTree = (new Trees.FunctionNodeStripper()).transformTree(debinarizedTree);
             return unAnnotatedTree;
         }
-  }
+    }
 
 
   // Lexicon ====================================================================
@@ -775,28 +790,27 @@ public class PCFGParserTester {
 
   // PCFGParserTester ===========================================================
 
-  // Longest sentence length that will be tested on.
-  private static int MAX_LENGTH = 20;
-
+    // Longest sentence length that will be tested on.
+    private static int MAX_LENGTH = 20;
  
-  private static double testParser(Parser parser, List<Tree<String>> testTrees) {
-    EnglishPennTreebankParseEvaluator.LabeledConstituentEval<String> eval = 
-      new EnglishPennTreebankParseEvaluator.LabeledConstituentEval<String>
-      (Collections.singleton("ROOT"), 
-       new HashSet<String>(Arrays.asList(new String[] {"''", "``", ".", ":", ","})));
-    for (Tree<String> testTree : testTrees) {
-      List<String> testSentence = testTree.getYield();
+    private static double testParser(Parser parser, List<Tree<String>> testTrees) {
+        EnglishPennTreebankParseEvaluator.LabeledConstituentEval<String> eval = 
+            new EnglishPennTreebankParseEvaluator.LabeledConstituentEval<String>(
+                Collections.singleton("ROOT"), 
+                new HashSet<String>(Arrays.asList(new String[] {"''", "``", ".", ":", ","})));
+        for (Tree<String> testTree : testTrees) {
+            List<String> testSentence = testTree.getYield();
 
-      if (testSentence.size() > MAX_LENGTH)
-        continue;
-      Tree<String> guessedTree = parser.getBestParse(testSentence);
-      System.out.println("Guess:\n"+Trees.PennTreeRenderer.render(guessedTree));
-      System.out.println("Gold:\n"+Trees.PennTreeRenderer.render(testTree));
-      eval.evaluate(guessedTree, testTree);
+            if (testSentence.size() > MAX_LENGTH)
+                continue;
+            Tree<String> guessedTree = parser.getBestParse(testSentence);
+            System.out.println("Guess:\n"+Trees.PennTreeRenderer.render(guessedTree));
+            System.out.println("Gold:\n"+Trees.PennTreeRenderer.render(testTree));
+            eval.evaluate(guessedTree, testTree);
+        }   
+        System.out.println();
+        return eval.display(true);
     }
-    System.out.println();
-    return eval.display(true);
-  }
   
     private static List<Tree<String>> readTrees(String basePath, int low, int high) {
         Collection<Tree<String>> trees = PennTreebankReader.readTrees(basePath, low, high);
