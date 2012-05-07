@@ -46,8 +46,6 @@ public class PCFGParserTester {
             // TODO: before you generate your grammar, the training trees
             // need to be binarized so that rules are at most binary
 
-                     
-            
             List<Tree<String>> annotatedTrees = new ArrayList<Tree<String>>();
             for (Tree<String> tree: trainTrees) {
                  annotatedTrees.add(TreeAnnotations.annotateTree(tree));
@@ -77,7 +75,9 @@ public class PCFGParserTester {
         }
         
         // Print a CKY chart
-        private static void printChart(List<List<Counter<Object>>> chart, String name) {
+        private static void printChart(List<List<Counter<Object>>> chart, 
+                                List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, 
+                                String name) {
             System.out.println("-------------------- $$$$$ --------------------");
             System.out.println(name);
             String spacer = ""; 
@@ -86,15 +86,18 @@ public class PCFGParserTester {
                     int end = begin + span;
                     System.out.println(spacer + begin + "," + end);
                     Counter<Object> counter = chart.get(begin).get(end);
+                    Map<Object,Triplet<Integer,Object,Object>> backptr = backs.get(begin).get(end);
                     for (Object o: counter.keySet()) {
-                        System.out.println(spacer + " " + o  + " : " + counter.getCount(o));
+                        System.out.println(spacer + " " + o  
+                            + " : " + counter.getCount(o) 
+                            + " : " + backptr.get(o));
                     }
                 }
                 spacer += "\t";
             }
             System.out.println("-------------------- ***** --------------------");
         }
-        
+
         private static List<Object> copyKeys(Counter<Object> counter) {
             List<Object> keys = new ArrayList<Object>();
             for (Object k: counter.keySet()) {
@@ -102,19 +105,24 @@ public class PCFGParserTester {
             }
             return keys;
         }
-       
-        private Tree<String> makeTree(List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, int begin, int end, Object A) {
-            
+
+        private Tree<String> makeTree(
+                            List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, 
+                            int begin, int end, Object A) {
+
+
             Triplet<Integer,Object,Object> backptr = backs.get(begin).get(end).get(A);
             String tag = getParent(A);
 
+            System.out.println("makeTree: begin=" + begin + ",end=" + end + ",A=" + A + " : " + "backptr=" + backptr);
+
+            List<Tree<String>> children = new ArrayList<Tree<String>>();
+            
             if (backptr == null) { 
                 // No back pointer. Terminal
-                return new Tree<String>(tag);
-            } 
-            
-            List<Tree<String>> children = new ArrayList<Tree<String>>();
-            if (backptr.getFirst() < 0) {
+                Tree<String> child = new  Tree<String>(((UnaryRule)A).getChild()); 
+                children.add(child);
+            } else  if (backptr.getFirst() < 0) {
                 // Single back pointer. Unary rule 
                 Object B = backptr.getSecond();
                 Tree<String> child = makeTree(backs, begin, end, B); 
@@ -156,7 +164,7 @@ public class PCFGParserTester {
             
             System.out.println("scores=" + scores.size() + "x" + scores.get(0).size());
             System.out.println("backs=" + backs.size() + "x" + backs.get(0).size());
-            printChart(scores, "scores");
+            printChart(scores, backs, "scores");
                           
             // First the Lexicon
             
@@ -193,7 +201,7 @@ public class PCFGParserTester {
                 }
             }
 
-            printChart(scores, "scores with Lexicon");
+            printChart(scores, backs, "scores with Lexicon");
 
             // Do higher layers  
             // Naming is based on rules: A -> B,C
@@ -225,7 +233,7 @@ public class PCFGParserTester {
                                         double prob = A.getScore() * B_scores.getCount(B) * C_scores.getCount(C);
                                         if (prob > A_scores.getCount(A)) {
                                             A_scores.setCount(A, prob);
-                                            A_backs.put(A, new Triplet<Integer,Object,Object>(-1, B, C));
+                                            A_backs.put(A, new Triplet<Integer,Object,Object>(split, B, C));
                                         }
                                     } 
                                 }
@@ -255,7 +263,7 @@ public class PCFGParserTester {
                 }    
             }
 
-            printChart(scores, "scores with Lexicon and Grammar");
+            printChart(scores, backs, "scores with Lexicon and Grammar");
             
             Counter<Object> topOfChart = scores.get(0).get(n);
             
@@ -269,7 +277,7 @@ public class PCFGParserTester {
             
             Tree<String> result = makeTree(backs, 0, n, bestKey);
             
-            return result;
+            return TreeAnnotations.unAnnotateTree(result);
         }
         
     }
