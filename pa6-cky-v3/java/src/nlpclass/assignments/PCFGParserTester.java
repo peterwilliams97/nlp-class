@@ -468,12 +468,13 @@ public class PCFGParserTester {
             if (tree.isLeaf()) {
                 return new Tree<String>(label);
             }
-            /*
+            
             if (tree.getChildren().size() == 1) {
                 return new Tree<String>(label, Collections.singletonList(binarizeTree(tree.getChildren().get(0))));
             }
-          */
-                        
+          
+          /*
+            [Average]    P: 48.53   R: 47.67   F1: 48.10   EX:  4.85              
             if (tree.getChildren().size() <= 2) {
                 List<Tree<String>> children = new ArrayList<Tree<String>>(2);
                 for (Tree<String> child: tree.getChildren()) { 
@@ -481,7 +482,7 @@ public class PCFGParserTester {
                 }
                 return new Tree<String>(label, children);
             }
-          
+         */ 
             // otherwise, it's a binary-or-more local tree, 
             // so decompose it into a sequence of binary and unary trees.
             String intermediateLabel = "@" + label + "->";
