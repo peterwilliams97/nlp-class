@@ -113,7 +113,6 @@ public class PCFGParserTester {
                             List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, 
                             int begin, int end, Object A) {
 
-
             Triplet<Integer,Object,Object> backptr = backs.get(begin).get(end).get(A);
             String tag = getParent(A);
 
@@ -147,8 +146,10 @@ public class PCFGParserTester {
             // TODO: implement this method
             int n = sentence.size();
             
-            System.out.println("getBestParse: n=" + n);
+            //System.out.println("getBestParse: n=" + n);
            
+            //Object[][] scores2 = new Object[n+1][n+1];
+            
             List<List<Counter<Object>>> scores = new ArrayList<List<Counter<Object>>>(n+1);
             for (int i = 0; i < n+1; i++) {
                 List<Counter<Object>> row = new ArrayList<Counter<Object>>(n+1);
@@ -166,7 +167,7 @@ public class PCFGParserTester {
                 }
                 backs.add(row);
             }
-            
+
             /*
             System.out.println("scores=" + scores.size() + "x" + scores.get(0).size());
             System.out.println("backs=" + backs.size() + "x" + backs.get(0).size());
@@ -211,30 +212,43 @@ public class PCFGParserTester {
 
             // Do higher layers  
             // Naming is based on rules: A -> B,C
+        
+            long startTime = new Date().getTime();
             for (int span = 2; span < n + 1; span++) {
-                //System.out.println("span=" + span);
+                double elapsed = ((double)new Date().getTime() - startTime) /1000.0;
+                //System.out.println("span=" + span + ", elapsed=" + elapsed);
                 for (int begin = 0; begin < n + 1 - span; begin++) {
                     int end = begin + span;
+
                     Counter<Object> A_scores = scores.get(begin).get(end);
                     Map<Object,Triplet<Integer,Object,Object>> A_backs = backs.get(begin).get(end);
-                    
+
                     for (int split = begin + 1; split < end; split++) {
-                        
+
                         Counter<Object> B_scores = scores.get(begin).get(split);
                         Counter<Object> C_scores = scores.get(split).get(end);
-                        //System.out.println(" begin=" + begin + ",split=" + split + ",end=" + end 
-                        //        + ", B_scores=" + B_scores.size() + ", C_scores=" + C_scores.size());
-                        for (Object B : B_scores.keySet()) { 
-                            //BinaryRule B = (BinaryRule)oB;
-                            //System.out.println(" B=" + B);
+                        
+                        long inner_loops = 0; 
+                        long matches = 0;    
+                        
+                        List<Object> B_list = new ArrayList<Object>(B_scores.keySet());
+                        List<Object> C_list = new ArrayList<Object>(C_scores.keySet());
+
+                        // This is a key optimization.
+                        // It avoids a B_list.size() x C_list.size() search in the for (Object B : B_list) loop 
+                        Map<String,List<Object>> C_map = new HashMap<String,List<Object>>();
+                        for (Object C : C_list) {
+                            String parent = getParent(C);
+                            if (!C_map.containsKey(parent)) {
+                                C_map.put(parent, new ArrayList<Object>());     
+                            }
+                            C_map.get(parent).add(C);
+                        }
+
+                        for (Object B : B_list) { 
                             for (BinaryRule A : grammar.getBinaryRulesByLeftChild(getParent(B))) {
-                                //System.out.println("  * A=" + A);
-                                for (Object C : C_scores.keySet()) {
-                                    //System.out.println("   ** C=" + C);
-                                    //System.out.println("        -- " + getParent(C));
-                                    //System.out.println("        ++ " + A.getRightChild());
-                                    if (getParent(C) == A.getRightChild()) {
-                                        //System.out.println("  C=" + C);
+                                if (C_map.containsKey(A.getRightChild())) {
+                                    for (Object C : C_map.get(A.getRightChild())) {
                                         // We now have A which has B as left child and C as right child 
                                         double prob = A.getScore() * B_scores.getCount(B) * C_scores.getCount(C);
                                         if (prob > A_scores.getCount(A)) {
@@ -245,10 +259,9 @@ public class PCFGParserTester {
                                 }
                             }
                         }
+
                     }
-                    //System.exit(444);
-                    
-                    
+                   
                     // Handle unaries: A -> B
                     boolean added = true;
                     while (added) {
@@ -266,6 +279,7 @@ public class PCFGParserTester {
                             }
                         }
                     }
+                   
                 }    
             }
 
@@ -273,25 +287,37 @@ public class PCFGParserTester {
             
             Counter<Object> topOfChart = scores.get(0).get(n);
             
-            System.out.println("topOfChart: " + topOfChart.size());
+            //System.out.println("topOfChart: " + topOfChart.size());
             /*
             for (Object o: topOfChart.keySet()) {
                 System.out.println("o=" + o + ", score=" + topOfChart.getCount(o));
             }
             */
-
+         
+            // All parses have "ROOT" at top of tree
             Object bestKey = topOfChart.argMax();
-            System.out.println("bestKey=" + bestKey);
+            double bestScore = Double.NEGATIVE_INFINITY;
+            for (Object key: topOfChart.keySet()) {
+                double score = topOfChart.getCount(key);
+                if ("ROOT".equals(getParent(key)) && score > bestScore) {
+                    bestKey = key;
+                    bestScore = score;
+                }
+            }
+            //System.out.println("bestKey=" + bestKey);
             
             Tree<String> result = makeTree(backs, 0, n, bestKey);
-            List<Tree<String>> children = new ArrayList<Tree<String>>();
-            children.add(result);
-            result = new Tree<String>("ROOT", children); // !@#$
+            if (!"ROOT".equals(result.getLabel())) {
+                List<Tree<String>> children = new ArrayList<Tree<String>>();
+                children.add(result);
+                result = new Tree<String>("ROOT", children); // !@#$
+            }
             
+            /*
             System.out.println("==================================================");
             System.out.println(result);
             System.out.println("====================^^^^^^========================");
-
+            */
             return TreeAnnotations.unAnnotateTree(result);
         }
         
@@ -442,9 +468,20 @@ public class PCFGParserTester {
             if (tree.isLeaf()) {
                 return new Tree<String>(label);
             }
+            /*
             if (tree.getChildren().size() == 1) {
                 return new Tree<String>(label, Collections.singletonList(binarizeTree(tree.getChildren().get(0))));
             }
+          */
+                        
+            if (tree.getChildren().size() <= 2) {
+                List<Tree<String>> children = new ArrayList<Tree<String>>(2);
+                for (Tree<String> child: tree.getChildren()) { 
+                    children.add(binarizeTree(child));
+                }
+                return new Tree<String>(label, children);
+            }
+          
             // otherwise, it's a binary-or-more local tree, 
             // so decompose it into a sequence of binary and unary trees.
             String intermediateLabel = "@" + label + "->";
@@ -556,116 +593,111 @@ public class PCFGParserTester {
    * look up rules by their child symbols.  Rule probability estimates
    * are just relative frequency estimates off of training trees.
    */
-  public static class Grammar {
+    public static class Grammar {
 
-    Map<String, List<BinaryRule>> binaryRulesByLeftChild = new HashMap<String, List<BinaryRule>>();
-    Map<String, List<BinaryRule>> binaryRulesByRightChild = new HashMap<String, List<BinaryRule>>();
-    Map<String, List<UnaryRule>> unaryRulesByChild = new HashMap<String, List<UnaryRule>>();
+        Map<String, List<BinaryRule>> binaryRulesByLeftChild = new HashMap<String, List<BinaryRule>>();
+        Map<String, List<BinaryRule>> binaryRulesByRightChild = new HashMap<String, List<BinaryRule>>();
+        Map<String, List<UnaryRule>> unaryRulesByChild = new HashMap<String, List<UnaryRule>>();
 
-    /* Rules in grammar are indexed by child for easy access when
-     * doing bottom up parsing. 
-     */
-    public List<BinaryRule> getBinaryRulesByLeftChild(String leftChild) {
-      return CollectionUtils.getValueList(binaryRulesByLeftChild, leftChild);
-    }
-
-    public List<BinaryRule> getBinaryRulesByRightChild(String rightChild) {
-      return CollectionUtils.getValueList(binaryRulesByRightChild, rightChild);
-    }
-
-    public List<UnaryRule> getUnaryRulesByChild(String child) {
-      return CollectionUtils.getValueList(unaryRulesByChild, child);
-    }
-
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      List<String> ruleStrings = new ArrayList<String>();
-      for (String leftChild : binaryRulesByLeftChild.keySet()) {
-        for (BinaryRule binaryRule : getBinaryRulesByLeftChild(leftChild)) {
-          ruleStrings.add(binaryRule.toString());
+        /* Rules in grammar are indexed by child for easy access when
+         * doing bottom up parsing. 
+         */
+        public List<BinaryRule> getBinaryRulesByLeftChild(String leftChild) {
+            return CollectionUtils.getValueList(binaryRulesByLeftChild, leftChild);
         }
-      }
-      for (String child : unaryRulesByChild.keySet()) {
-        for (UnaryRule unaryRule : getUnaryRulesByChild(child)) {
-          ruleStrings.add(unaryRule.toString());
+
+        public List<BinaryRule> getBinaryRulesByRightChild(String rightChild) {
+            return CollectionUtils.getValueList(binaryRulesByRightChild, rightChild);
         }
-      }
-      for (String ruleString : CollectionUtils.sort(ruleStrings)) {
-        sb.append(ruleString);
-        sb.append("\n");
-      }
-      return sb.toString();
-    }
 
-    private void addBinary(BinaryRule binaryRule) {
-      CollectionUtils.addToValueList(binaryRulesByLeftChild, 
-                                     binaryRule.getLeftChild(), binaryRule);
-      CollectionUtils.addToValueList(binaryRulesByRightChild, 
-                                     binaryRule.getRightChild(), binaryRule);
-    }
+        public List<UnaryRule> getUnaryRulesByChild(String child) {
+            return CollectionUtils.getValueList(unaryRulesByChild, child);
+        }
 
-    private void addUnary(UnaryRule unaryRule) {
-      CollectionUtils.addToValueList(unaryRulesByChild, 
-                                     unaryRule.getChild(), unaryRule);
-    }
+        public String toString() {
+          StringBuilder sb = new StringBuilder();
+          List<String> ruleStrings = new ArrayList<String>();
+          for (String leftChild : binaryRulesByLeftChild.keySet()) {
+            for (BinaryRule binaryRule : getBinaryRulesByLeftChild(leftChild)) {
+              ruleStrings.add(binaryRule.toString());
+            }
+          }
+          for (String child : unaryRulesByChild.keySet()) {
+            for (UnaryRule unaryRule : getUnaryRulesByChild(child)) {
+              ruleStrings.add(unaryRule.toString());
+            }
+          }
+          for (String ruleString : CollectionUtils.sort(ruleStrings)) {
+            sb.append(ruleString);
+            sb.append("\n");
+          }
+          return sb.toString();
+        }
 
-    /* A builds PCFG using the observed counts of binary and unary
-     * productions in the training trees to estimate the probabilities
-     * for those rules.  
-     */ 
-    public Grammar(List<Tree<String>> trainTrees) {
-      Counter<UnaryRule> unaryRuleCounter = new Counter<UnaryRule>();
-      Counter<BinaryRule> binaryRuleCounter = new Counter<BinaryRule>();
-      Counter<String> symbolCounter = new Counter<String>();
-      for (Tree<String> trainTree : trainTrees) {
-        tallyTree(trainTree, symbolCounter, unaryRuleCounter, binaryRuleCounter);
-      }
-      for (UnaryRule unaryRule : unaryRuleCounter.keySet()) {
-        double unaryProbability = unaryRuleCounter.getCount(unaryRule) / symbolCounter.getCount(unaryRule.getParent());
-        unaryRule.setScore(unaryProbability);
-        addUnary(unaryRule);
-      }
-      for (BinaryRule binaryRule : binaryRuleCounter.keySet()) {
-        double binaryProbability = 
-          binaryRuleCounter.getCount(binaryRule) / 
-          symbolCounter.getCount(binaryRule.getParent());
-        binaryRule.setScore(binaryProbability);
-        addBinary(binaryRule);
-      }
-    }
+        private void addBinary(BinaryRule binaryRule) {
+            CollectionUtils.addToValueList(binaryRulesByLeftChild, binaryRule.getLeftChild(), binaryRule);
+            CollectionUtils.addToValueList(binaryRulesByRightChild, binaryRule.getRightChild(), binaryRule);
+        }
 
-    private void tallyTree(Tree<String> tree, Counter<String> symbolCounter,
-                           Counter<UnaryRule> unaryRuleCounter, 
-                           Counter<BinaryRule> binaryRuleCounter) {
-      if (tree.isLeaf()) return;
-      if (tree.isPreTerminal()) return;
-      if (tree.getChildren().size() == 1) {
-        UnaryRule unaryRule = makeUnaryRule(tree);
-        symbolCounter.incrementCount(tree.getLabel(), 1.0);
-        unaryRuleCounter.incrementCount(unaryRule, 1.0);
-      }
-      if (tree.getChildren().size() == 2) {
-        BinaryRule binaryRule = makeBinaryRule(tree);
-        symbolCounter.incrementCount(tree.getLabel(), 1.0);
-        binaryRuleCounter.incrementCount(binaryRule, 1.0);
-      }
-      if (tree.getChildren().size() < 1 || tree.getChildren().size() > 2) {
-        throw new RuntimeException("Attempted to construct a Grammar with an illegal tree: "+tree);
-      }
-      for (Tree<String> child : tree.getChildren()) {
-        tallyTree(child, symbolCounter, unaryRuleCounter,  binaryRuleCounter);
-      }
-    }
+        private void addUnary(UnaryRule unaryRule) {
+            CollectionUtils.addToValueList(unaryRulesByChild,  unaryRule.getChild(), unaryRule);
+        }
 
-    private UnaryRule makeUnaryRule(Tree<String> tree) {
-      return new UnaryRule(tree.getLabel(), tree.getChildren().get(0).getLabel());
-    }
+        /* A builds PCFG using the observed counts of binary and unary
+         * productions in the training trees to estimate the probabilities
+         * for those rules.  
+         */ 
+        public Grammar(List<Tree<String>> trainTrees) {
+            Counter<UnaryRule> unaryRuleCounter = new Counter<UnaryRule>();
+            Counter<BinaryRule> binaryRuleCounter = new Counter<BinaryRule>();
+            Counter<String> symbolCounter = new Counter<String>();
+            for (Tree<String> trainTree : trainTrees) {
+                tallyTree(trainTree, symbolCounter, unaryRuleCounter, binaryRuleCounter);
+            }
+            for (UnaryRule unaryRule : unaryRuleCounter.keySet()) {
+                double unaryProbability = unaryRuleCounter.getCount(unaryRule) / symbolCounter.getCount(unaryRule.getParent());
+                unaryRule.setScore(unaryProbability);
+                addUnary(unaryRule);
+            }
+            for (BinaryRule binaryRule : binaryRuleCounter.keySet()) {
+                double binaryProbability = binaryRuleCounter.getCount(binaryRule) / symbolCounter.getCount(binaryRule.getParent());
+                binaryRule.setScore(binaryProbability);
+                addBinary(binaryRule);
+            }
+        }
 
-    private BinaryRule makeBinaryRule(Tree<String> tree) {
-      return new BinaryRule(tree.getLabel(), tree.getChildren().get(0).getLabel(), 
-                            tree.getChildren().get(1).getLabel());
+        private void tallyTree(Tree<String> tree, Counter<String> symbolCounter,
+                               Counter<UnaryRule> unaryRuleCounter, 
+                               Counter<BinaryRule> binaryRuleCounter) {
+            if (tree.isLeaf()) return;
+            if (tree.isPreTerminal()) return;
+            if (tree.getChildren().size() == 1) {
+                UnaryRule unaryRule = makeUnaryRule(tree);
+                symbolCounter.incrementCount(tree.getLabel(), 1.0);
+                unaryRuleCounter.incrementCount(unaryRule, 1.0);
+            }
+            if (tree.getChildren().size() == 2) {
+                BinaryRule binaryRule = makeBinaryRule(tree);
+                symbolCounter.incrementCount(tree.getLabel(), 1.0);
+                binaryRuleCounter.incrementCount(binaryRule, 1.0);
+            }
+            if (tree.getChildren().size() < 1 || tree.getChildren().size() > 2) {
+                throw new RuntimeException("Attempted to construct a Grammar with an illegal tree: "+tree);
+            }
+            for (Tree<String> child : tree.getChildren()) {
+                tallyTree(child, symbolCounter, unaryRuleCounter,  binaryRuleCounter);
+            }
+        }
+
+        private UnaryRule makeUnaryRule(Tree<String> tree) {
+            return new UnaryRule(tree.getLabel(), tree.getChildren().get(0).getLabel());
+        }
+
+        private BinaryRule makeBinaryRule(Tree<String> tree) {
+            return new BinaryRule(tree.getLabel(), tree.getChildren().get(0).getLabel(), 
+                                tree.getChildren().get(1).getLabel());
+        }
     }
-  }
 
 
   // BinaryRule =================================================================

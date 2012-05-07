@@ -490,8 +490,7 @@ public class Trees {
     public static <L> Tree<L> spliceNodes(Tree<L> tree, Filter<L> filter) {
         List<Tree<L>> rootList = spliceNodesHelper(tree, filter);
         if (rootList.size() > 1) {
-            throw new IllegalArgumentException(
-                    "spliceNodes: no unique root after splicing");
+            throw new IllegalArgumentException("spliceNodes: no unique root after splicing");
         }
         if (rootList.size() < 1) {
             return null;
@@ -499,17 +498,16 @@ public class Trees {
         return rootList.get(0);
     }
 
-    private static <L> List<Tree<L>> spliceNodesHelper(Tree<L> tree,
-            Filter<L> filter) {
+    private static <L> List<Tree<L>> spliceNodesHelper(Tree<L> tree, Filter<L> filter) {
         List<Tree<L>> splicedChildren = new ArrayList<Tree<L>>();
         for (Tree<L> child : tree.getChildren()) {
             List<Tree<L>> splicedChildList = spliceNodesHelper(child, filter);
             splicedChildren.addAll(splicedChildList);
         }
-        if (filter.accept(tree.getLabel()))
+        if (filter.accept(tree.getLabel())) {
             return splicedChildren;
-        return Collections.singletonList(new Tree<L>(tree.getLabel(),
-                splicedChildren));
+        }
+        return Collections.singletonList(new Tree<L>(tree.getLabel(),splicedChildren));
     }
 
     /**

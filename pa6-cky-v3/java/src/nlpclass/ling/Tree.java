@@ -17,12 +17,15 @@ public class Tree<L> {
     public List<Tree<L>> getChildren() {
         return children;
     }
+    
     public void setChildren(List<Tree<L>> children) {
         this.children = children;
     }
+    
     public L getLabel() {
         return label;
     }
+    
     public void setLabel(L label) {
         this.label = label;
     }
@@ -40,7 +43,7 @@ public class Tree<L> {
     }
 
     public boolean isPhrasal() {
-        return ! (isLeaf() || isPreTerminal());
+        return !(isLeaf() || isPreTerminal());
     }
 
     /* Returns a list of words at the leafs of this tree gotten by
@@ -64,73 +67,79 @@ public class Tree<L> {
 
   /* Returns a list of the preterminals gotten by traversing from left
    * to right.  This is effectively an POS tagging for the words that
-   * tree represents. */
-  public List<L> getPreTerminalYield() {
-    List<L> yield = new ArrayList<L>();
-    appendPreTerminalYield(this, yield);
-    return yield;
-  }
+   * tree represents. 
+   */
+    public List<L> getPreTerminalYield() {
+        List<L> yield = new ArrayList<L>();
+        appendPreTerminalYield(this, yield);
+        return yield;
+    }
 
-  private static <L> void appendPreTerminalYield(Tree<L> tree, 
+    private static <L> void appendPreTerminalYield(Tree<L> tree, 
                                                  List<L> yield) {
-    if (tree.isPreTerminal()) {
-      yield.add(tree.getLabel());
-      return;
+        if (tree.isPreTerminal()) {
+            yield.add(tree.getLabel());
+            return;
+        }
+        for (Tree<L> child : tree.getChildren()) {
+            appendPreTerminalYield(child, yield);
+        }
     }
-    for (Tree<L> child : tree.getChildren()) {
-      appendPreTerminalYield(child, yield);
+
+    /* Returns a list of the node values gotten by traversing in this
+     * order: root, left subtree, right subtree 
+     */
+    public List<Tree<L>> getPreOrderTraversal() { 
+        ArrayList<Tree<L>> traversal = new ArrayList <Tree<L>>();
+        traversalHelper(this, traversal, true); 
+        return traversal; 
+    } 
+
+    /* Returns a list of the node values gotten by traversing in this
+     * order: left subtree, right subtree, root 
+     */
+    public List<Tree<L>> getPostOrderTraversal() {
+        ArrayList<Tree<L>> traversal = new ArrayList<Tree<L>>();
+        traversalHelper(this, traversal, false);
+        return traversal;
     }
-  }
 
-  /* Returns a list of the node values gotten by traversing in this
-   * order: root, left subtree, right subtree */
-  public List<Tree<L>> getPreOrderTraversal() { 
-    ArrayList<Tree<L>> traversal = new ArrayList <Tree<L>>();
-    traversalHelper(this, traversal, true); 
-    return traversal; 
-  } 
-
-  /* Returns a list of the node values gotten by traversing in this
-   * order: left subtree, right subtree, root */
-  public List<Tree<L>> getPostOrderTraversal() {
-    ArrayList<Tree<L>> traversal = new ArrayList<Tree<L>>();
-    traversalHelper(this, traversal, false);
-    return traversal;
-  }
-
-  private static <L> void traversalHelper(Tree<L> tree, List<Tree<L>> traversal, 
+    private static <L> void traversalHelper(Tree<L> tree, List<Tree<L>> traversal, 
                                           boolean preOrder) {
-    if (preOrder)
-      traversal.add(tree);
-    for (Tree<L> child : tree.getChildren()) {
-      traversalHelper(child, traversal, preOrder);
+        if (preOrder) {
+          traversal.add(tree);
+        }  
+        for (Tree<L> child : tree.getChildren()) {
+            traversalHelper(child, traversal, preOrder);
+        }
+        if (!preOrder) {
+          traversal.add(tree);
+        }
     }
-    if (! preOrder)
-      traversal.add(tree);
-  }
 
-  /* Set the words at the leaves of a tree to the words from the
-   * list */
-  public void setWords(List<L> words) {
-    setWordsHelper(words, 0);
-  }
-
-  private int setWordsHelper(List<L> words, int wordNum) {
-    if (isLeaf()) {
-      label = words.get(wordNum);
-      return wordNum + 1;
+    /* Set the words at the leaves of a tree to the words from the
+     * list 
+     */
+    public void setWords(List<L> words) {
+        setWordsHelper(words, 0);
     }
-    else {
-      for (Tree<L> child : getChildren())
-        wordNum = child.setWordsHelper(words, wordNum);
-      return wordNum;
-    }
-  }
 
-    
-  public List<Tree<L>> toSubTreeList() {
-    return getPreOrderTraversal();
-  }
+    private int setWordsHelper(List<L> words, int wordNum) {
+        if (isLeaf()) {
+          label = words.get(wordNum);
+          return wordNum + 1;
+        }
+        else {
+            for (Tree<L> child : getChildren()) {
+                wordNum = child.setWordsHelper(words, wordNum);
+            }
+            return wordNum;
+        }
+    }
+
+    public List<Tree<L>> toSubTreeList() {
+        return getPreOrderTraversal();
+    }
 
   /* Creates a list of all constituents in this tree.  A constituent
    * is just a non-terminal label and that non-terminal covers in the
