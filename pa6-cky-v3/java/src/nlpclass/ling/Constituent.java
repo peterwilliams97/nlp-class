@@ -6,47 +6,47 @@ package nlpclass.ling;
  * @author Dan Klein
  */
 public class Constituent<L> {
-  L label;
-  int start;
-  int end;
+    L label;
+    int start;
+    int end;
 
-  public L getLabel() {
-    return label;
-  }
+    public L getLabel() {
+        return label;
+    }
 
-  public int getStart() {
-    return start;
-  }
+    public int getStart() {
+        return start;
+    }
 
-  public int getEnd() {
-    return end;
-  }
+    public int getEnd() {
+        return end;
+    }
 
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof Constituent)) return false;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Constituent)) return false;
 
-    final Constituent constituent = (Constituent) o;
+        final Constituent constituent = (Constituent) o;
 
-    if (end != constituent.end) return false;
-    if (start != constituent.start) return false;
-    if (label != null ? !label.equals(constituent.label) : constituent.label != null) 
-      return false;
+        if (end != constituent.end) return false;
+        if (start != constituent.start) return false;
+        if (label != null ? !label.equals(constituent.label) : constituent.label != null) 
+            return false;
 
-    return true;
-  }
+        return true;
+    }
 
-  public int hashCode() {
-    int result;
-    result = (label != null ? label.hashCode() : 0);
-    result = 29 * result + start;
-    result = 29 * result + end;
-    return result;
-  }
+    public int hashCode() {
+        int result;
+        result = (label != null ? label.hashCode() : 0);
+        result = 29 * result + start;
+        result = 29 * result + end;
+        return result;
+    }
 
-  public Constituent(L label, int start, int end) {
-    this.label = label;
-    this.start = start;
-    this.end = end;
-  }
+    public Constituent(L label, int start, int end) {
+        this.label = label;
+        this.start = start;
+        this.end = end;
+    }
 }

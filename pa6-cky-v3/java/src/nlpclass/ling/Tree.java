@@ -11,54 +11,56 @@ import java.util.*;
  * @author Dan Klein
  */
 public class Tree<L> {
-  L label;
-  List<Tree<L>> children;
+    L label;
+    List<Tree<L>> children;
 
-  public List<Tree<L>> getChildren() {
-    return children;
-  }
-  public void setChildren(List<Tree<L>> children) {
-    this.children = children;
-  }
-  public L getLabel() {
-    return label;
-  }
-  public void setLabel(L label) {
-    this.label = label;
-  }
-
-  /* Returns true at the word(leaf) level of a tree */
-  public boolean isLeaf() {
-    return getChildren().isEmpty();
-  }
-
-  /* Returns true level of non-terminals which are directly above
-   * single words(leafs) */
-  public boolean isPreTerminal() {
-    return getChildren().size() == 1 && getChildren().get(0).isLeaf();
-  }
-
-  public boolean isPhrasal() {
-    return ! (isLeaf() || isPreTerminal());
-  }
-
-  /* Returns a list of words at the leafs of this tree gotten by
-   * traversing from left to right */
-  public List<L> getYield() {
-    List<L> yield = new ArrayList<L>();
-    appendYield(this, yield);
-    return yield;
-  }
-
-  private static <L> void appendYield(Tree<L> tree, List<L> yield) {
-    if (tree.isLeaf()) {
-      yield.add(tree.getLabel());
-      return;
+    public List<Tree<L>> getChildren() {
+        return children;
     }
-    for (Tree<L> child : tree.getChildren()) {
-      appendYield(child, yield);
+    public void setChildren(List<Tree<L>> children) {
+        this.children = children;
     }
-  }
+    public L getLabel() {
+        return label;
+    }
+    public void setLabel(L label) {
+        this.label = label;
+    }
+
+    /* Returns true at the word(leaf) level of a tree */
+    public boolean isLeaf() {
+        return getChildren().isEmpty();
+    }
+
+    /* Returns true level of non-terminals which are directly above
+     * single words(leafs) 
+     */
+    public boolean isPreTerminal() {
+        return getChildren().size() == 1 && getChildren().get(0).isLeaf();
+    }
+
+    public boolean isPhrasal() {
+        return ! (isLeaf() || isPreTerminal());
+    }
+
+    /* Returns a list of words at the leafs of this tree gotten by
+     * traversing from left to right 
+     */
+    public List<L> getYield() {
+        List<L> yield = new ArrayList<L>();
+        appendYield(this, yield);
+        return yield;
+    }
+
+    private static <L> void appendYield(Tree<L> tree, List<L> yield) {
+        if (tree.isLeaf()) {
+            yield.add(tree.getLabel());
+            return;
+        }       
+        for (Tree<L> child : tree.getChildren()) {
+            appendYield(child, yield);
+        }
+    }
 
   /* Returns a list of the preterminals gotten by traversing from left
    * to right.  This is effectively an POS tagging for the words that
@@ -151,48 +153,49 @@ public class Tree<L> {
     return span;
   }
 
-  /* Returns a string representation of this tree using bracket
-   * notation. */
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    toStringBuilder(sb);
-    return sb.toString();
-  }
-
-  public void toStringBuilder(StringBuilder sb) {
-    if (! isLeaf()) sb.append('(');
-    if (getLabel() != null) {
-      sb.append(getLabel());
+    /* Returns a string representation of this tree using bracket
+     * notation. 
+     */
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        toStringBuilder(sb);
+        return sb.toString();
     }
-    if (! isLeaf()) {
-      for (Tree<L> child : getChildren()) {
-        sb.append(' ');
-        child.toStringBuilder(sb);
-      }
-      sb.append(')');
+
+    public void toStringBuilder(StringBuilder sb) {
+        if (!isLeaf()) sb.append('(');
+        if (getLabel() != null) {
+            sb.append(getLabel());
+        }
+        if (! isLeaf()) {
+            for (Tree<L> child : getChildren()) {
+                sb.append(' ');
+                child.toStringBuilder(sb);
+            }
+            sb.append(')');
+        }
     }
-  }
 
-  public Tree<L> deepCopy() {
-    return deepCopy(this);
-  }
-
-  private static <L> Tree<L> deepCopy(Tree<L> tree) {
-    List<Tree<L>> childrenCopies = new ArrayList<Tree<L>>();
-    for (Tree<L> child : tree.getChildren()) {
-      childrenCopies.add(deepCopy(child));
+    public Tree<L> deepCopy() {
+        return deepCopy(this);
     }
-    return new Tree<L>(tree.getLabel(), childrenCopies);
-  }
 
-  /* The leaf constructor. */
-  public Tree(L label, List<Tree<L>> children) {
-    this.label = label;
-    this.children = children;
-  }
+    private static <L> Tree<L> deepCopy(Tree<L> tree) {
+        List<Tree<L>> childrenCopies = new ArrayList<Tree<L>>();
+        for (Tree<L> child : tree.getChildren()) {
+            childrenCopies.add(deepCopy(child));
+        }
+        return new Tree<L>(tree.getLabel(), childrenCopies);
+    }
 
-  public Tree(L label) {
-    this.label = label;
-    this.children = Collections.emptyList();
-  }
+    /* The leaf constructor. */
+    public Tree(L label, List<Tree<L>> children) {
+        this.label = label;
+        this.children = children;
+    }
+
+    public Tree(L label) {
+        this.label = label;
+        this.children = Collections.emptyList();
+    }
 }

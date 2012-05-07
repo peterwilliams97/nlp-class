@@ -14,30 +14,30 @@ import java.util.Collection;
  * @author Dan Klein
  */
 public class Counter <E> implements Serializable {
-  Map<E, Double> entries;
+    Map<E, Double> entries;
 
   /**
    * The elements in the counter.
    *
    * @return set of keys
    */
-  public Set<E> keySet() {
-    return entries.keySet();
-  }
+    public Set<E> keySet() {
+        return entries.keySet();
+    }
 
   /**
    * The number of entries in the counter (not the total count -- use totalCount() instead).
    */
-  public int size() {
-    return entries.size();
-  }
+    public int size() {
+        return entries.size();
+    }
 
   /**
    * True if there are no entries in the counter (false does not mean totalCount > 0)
    */
-  public boolean isEmpty() {
-    return size() == 0;
-  }
+    public boolean isEmpty() {
+        return size() == 0;
+    }
 
   /**
    * Returns whether the counter contains the given key.  Note that this is the
@@ -48,9 +48,9 @@ public class Counter <E> implements Serializable {
    * @param key
    * @return whether the counter contains the key
    */
-  public boolean containsKey(E key) {
-    return entries.containsKey(key);
-  }
+    public boolean containsKey(E key) {
+        return entries.containsKey(key);
+    }
 
   /**
    * Get the count of the element, or zero if the element is not in the
@@ -58,12 +58,12 @@ public class Counter <E> implements Serializable {
    *
    * @param key
    */
-  public double getCount(E key) {
-    Double value = entries.get(key);
-    if (value == null)
-      return 0;
-    return value;
-  }
+    public double getCount(E key) {
+        Double value = entries.get(key);
+        if (value == null)
+            return 0;
+        return value;
+    }
 
   /**
    * Set the count for the given key, clobbering any previous count.
@@ -71,9 +71,9 @@ public class Counter <E> implements Serializable {
    * @param key
    * @param count
    */
-  public void setCount(E key, double count) {
-    entries.put(key, count);
-  }
+    public void setCount(E key, double count) {
+        entries.put(key, count);
+    }
 
   /**
    * Increment a key's count by the given amount.
@@ -81,56 +81,56 @@ public class Counter <E> implements Serializable {
    * @param key
    * @param increment
    */
-  public void incrementCount(E key, double increment) {
-    setCount(key, getCount(key) + increment);
-  }
+    public void incrementCount(E key, double increment) {
+        setCount(key, getCount(key) + increment);
+    }
 
   /**
    * Increment each element in a given collection by a given amount.
    */
-  public void incrementAll(Collection<? extends E> collection, double count) {
-    for (E key : collection) {
-      incrementCount(key, count);
+    public void incrementAll(Collection<? extends E> collection, double count) {
+        for (E key : collection) {
+            incrementCount(key, count);
+        }
     }
-  }
 
-  public <T extends E> void incrementAll(Counter<T> counter) {
-    for (T key : counter.keySet()) {
-      double count = counter.getCount(key);
-      incrementCount(key, count);
+    public <T extends E> void incrementAll(Counter<T> counter) {
+        for (T key : counter.keySet()) {
+            double count = counter.getCount(key);
+            incrementCount(key, count);
+        }
     }
-  }
 
-  /**
-   * Finds the total of all counts in the counter.  This implementation iterates
-   * through the entire counter every time this method is called.
-   *
-   * @return the counter's total
-   */
-  public double totalCount() {
-    double total = 0.0;
-    for (Map.Entry<E, Double> entry : entries.entrySet()) {
-      total += entry.getValue();
+    /**
+     * Finds the total of all counts in the counter.  This implementation iterates
+     * through the entire counter every time this method is called.
+     *
+     * @return the counter's total
+     */
+    public double totalCount() {
+        double total = 0.0;
+        for (Map.Entry<E, Double> entry : entries.entrySet()) {
+            total += entry.getValue();
+        }
+        return total;
     }
-    return total;
-  }
 
   /**
    * Finds the key with maximum count.  This is a linear operation, and ties are broken arbitrarily.
    *
    * @return a key with minumum count
    */
-  public E argMax() {
-    double maxCount = Double.NEGATIVE_INFINITY;
-    E maxKey = null;
-    for (Map.Entry<E, Double> entry : entries.entrySet()) {
-      if (entry.getValue() > maxCount || maxKey == null) {
-        maxKey = entry.getKey();
-        maxCount = entry.getValue();
-      }
+    public E argMax() {
+        double maxCount = Double.NEGATIVE_INFINITY;
+        E maxKey = null;
+        for (Map.Entry<E, Double> entry : entries.entrySet()) {
+            if (entry.getValue() > maxCount || maxKey == null) {
+                maxKey = entry.getKey();
+                maxCount = entry.getValue();
+            }
+        }
+        return maxKey;
     }
-    return maxKey;
-  }
 
   /**
    * Returns a string representation with the keys ordered by decreasing
@@ -138,9 +138,9 @@ public class Counter <E> implements Serializable {
    *
    * @return string representation
    */
-  public String toString() {
-    return toString(keySet().size());
-  }
+    public String toString() {
+        return toString(keySet().size());
+    }
 
   /**
    * Returns a string representation which includes no more than the
@@ -149,43 +149,43 @@ public class Counter <E> implements Serializable {
    * @param maxKeysToPrint
    * @return partial string representation
    */
-  public String toString(int maxKeysToPrint) {
-    return asPriorityQueue().toString(maxKeysToPrint);
-  }
+    public String toString(int maxKeysToPrint) {
+        return asPriorityQueue().toString(maxKeysToPrint);
+    }
 
   /**
-   * Builds a priority queue whose elements are the counter's elements, and
+   * Builds a priority queue whose elements are the counter's  elements, and
    * whose priorities are those elements' counts in the counter.
    */
-  public PriorityQueue<E> asPriorityQueue() {
-    PriorityQueue<E> pq = new PriorityQueue<E>(entries.size());
-    for (Map.Entry<E, Double> entry : entries.entrySet()) {
-      pq.add(entry.getKey(), entry.getValue());
+    public PriorityQueue<E> asPriorityQueue() {
+        PriorityQueue<E> pq = new PriorityQueue<E>(entries.size());
+        for (Map.Entry<E, Double> entry : entries.entrySet()) {
+            pq.add(entry.getKey(), entry.getValue());
+        }
+        return pq;
     }
-    return pq;
-  }
 
-  public Counter() {
-    this(new MapFactory.HashMapFactory<E, Double>());
-  }
+    public Counter() {
+        this(new MapFactory.HashMapFactory<E, Double>());
+    }
 
-  public Counter(MapFactory<E, Double> mf) {
-    entries = mf.buildMap();
-  }
+    public Counter(MapFactory<E, Double> mf) {
+        entries = mf.buildMap();
+    }
 
-  public static void main(String[] args) {
-    Counter<String> counter = new Counter<String>();
-    System.out.println(counter);
-    counter.incrementCount("planets", 7);
-    System.out.println(counter);
-    counter.incrementCount("planets", 1);
-    System.out.println(counter);
-    counter.setCount("suns", 1);
-    System.out.println(counter);
-    counter.setCount("aliens", 0);
-    System.out.println(counter);
-    System.out.println(counter.toString(2));
-    System.out.println("Total: " + counter.totalCount());
-  }
+    public static void main(String[] args) {
+        Counter<String> counter = new Counter<String>();
+        System.out.println(counter);
+        counter.incrementCount("planets", 7);
+        System.out.println(counter);
+        counter.incrementCount("planets", 1);
+        System.out.println(counter);
+        counter.setCount("suns", 1);
+        System.out.println(counter);
+        counter.setCount("aliens", 0);
+        System.out.println(counter);
+        System.out.println(counter.toString(2));
+        System.out.println("Total: " + counter.totalCount());
+    }
 
 }

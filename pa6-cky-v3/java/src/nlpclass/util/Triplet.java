@@ -10,7 +10,7 @@ public class Triplet<F,S,T> {
     T third;
 
     public F getFirst() {
-    return first;
+        return first;
     }
 
     public S getSecond() {
@@ -25,12 +25,12 @@ public class Triplet<F,S,T> {
         if (this == o) return true;
         if (!(o instanceof Triplet)) return false;
 
-        @SuppressWarnings("unchecked")	
+        @SuppressWarnings("unchecked")
         final Triplet triplet = (Triplet) o;
         
-        if (first != null ? !first.equals(triplet.first) : triplet.first != null) return false;
+        if (first != null  ? !first.equals(triplet.first)   : triplet.first != null)  return false;
         if (second != null ? !second.equals(triplet.second) : triplet.second != null) return false;
-        if (third != null ? !third.equals(triplet.third) : triplet.third != null) return false;
+        if (third != null  ? !third.equals(triplet.third)   : triplet.third != null)  return false;
         
         return true;
     }

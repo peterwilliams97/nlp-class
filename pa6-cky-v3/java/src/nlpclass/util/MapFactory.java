@@ -32,12 +32,12 @@ public abstract class MapFactory<K,V> implements Serializable {
     }
   }
 
-  public static class WeakHashMapFactory<K,V> extends MapFactory<K,V> {
-    public Map<K,V> buildMap() {
-      return new WeakHashMap<K,V>();
+    public static class WeakHashMapFactory<K,V> extends MapFactory<K,V> {
+        public Map<K,V> buildMap() {
+            return new WeakHashMap<K,V>();
+        }
     }
-  }
 
-  public abstract Map<K,V> buildMap();
+    public abstract Map<K,V> buildMap();
 }
 

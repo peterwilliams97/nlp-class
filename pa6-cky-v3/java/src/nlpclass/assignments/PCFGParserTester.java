@@ -62,124 +62,183 @@ public class PCFGParserTester {
             } else {
                 return null;
             }
-            
-        }
-    
-    public Tree<String> getBestParse(List<String> sentence) {
-        // TODO: implement this method
-        int n = sentence.size();
-       
-        List<List<Map<Object,Double>>> scores = new ArrayList<List<Map<Object,Double>>>(n+1);
-        for (int i = 0; i < n+1; i++) {
-            List<Map<Object,Double>> row = new ArrayList<Map<Object,Double>>(n+1);
-            for (int j = 0; j < n+1; j++) {
-                row.add(new HashMap<Object,Double>());
-            }
-            scores.add(row);
-        }
-        List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs = 
-            new ArrayList<List<Map<Object,Triplet<Integer,Object,Object>>>>(n+1);
-        for (int i = 0; i < n+1; i++) {
-            List<Map<Object,Triplet<Integer,Object,Object>>> row = new ArrayList<Map<Object,Triplet<Integer,Object,Object>>>(n+1);
-            for (int j = 0; j < n+1; j++) {
-                row.add(new HashMap<Object,Triplet<Integer,Object,Object>>());
-            }
-            backs.add(row);
         }
         
-        System.out.println("scores=" + scores.size() + "x" + scores.get(0).size());
-        System.out.println("backs=" + backs.size() + "x" + backs.get(0).size());
-                      
-        // First the Lexicon
-        
-        for (int i = 0; i < n; i++) {
-            String word = sentence.get(i);
-            for (String tag : lexicon.getAllTags()) {
-                UnaryRule A = new UnaryRule(tag, word);
-                A.setScore(lexicon.scoreTagging(word, tag));
-                scores.get(i).get(i+1).put(A, A.getScore()); 
-                backs.get(i).get(i+1).put(A, null);
-            }
-    
-            // Handle unaries
-            boolean added = true;
-            while (added) {
-                added = false;
-                // Don't modify the dict we are iterating
-                Map<Object,Double> theseScores = new HashMap(scores.get(i).get(i+1));
-                for (Object oB : theseScores.keySet()) {
-                    UnaryRule B = (UnaryRule)oB;
-                    for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
-                         if (scores.get(i).get(i+1).get(B) > 0.0) {
-                            double prob = B.getScore() * theseScores.get(B); 
-                            if (!theseScores.containsKey(A) || prob > theseScores.get(A)) {
-                                scores.get(i).get(i+1).put(A, prob);
-                                backs.get(i).get(i+1).put(A, new Triplet(-1, B, null));
-                            }
-                        }
-                    } 
-                }    
-            }
-        }
-        
-        // Do higher layers  
-        // Naming is based on rules: A -> B,C
-        for (int span = 2; span <= n; span++) {
-            for (int begin = 0; begin <= n - span; begin++) {
-                int end = begin + span;
-                Map<Object,Double> A_scores = scores.get(begin).get(end);
-                Map<Object,Triplet<Integer,Object,Object>> A_backs = backs.get(begin).get(end);
-                
-                for (int split = begin + 1; split < end; split++) {
-                    Map<Object,Double> B_scores = scores.get(begin).get(split);
-                    Map<Object,Double> C_scores = scores.get(split).get(end);
-                    for (Object B : B_scores.keySet()) { 
-                        //BinaryRule B = (BinaryRule)oB;
-                        for (BinaryRule A : grammar.getBinaryRulesByLeftChild(getParent(B))) {
-                            for (Object C : C_scores.keySet()) {
-                                 if (getParent(C) == A.getRightChild()) {
-                                    // Now have A which has B as left child and C as right child 
-                                    double prob = A.getScore() * B_scores.get(B) * C_scores.get(C);
-                                    if (prob > A_scores.get(A)) {
-                                        A_scores.put(A, prob);
-                                        A_backs.put(A, new Triplet(-1, B, C));
-                                    }
-                                } 
-                            }
-                        }
-                    }
+        // Print a CKY chart
+        private static void printChart(List<List<Counter<Object>>> chart, String name) {
+            System.out.println("-------------------- $$$$$ --------------------");
+            System.out.println(name);
+            String spacer = ""; 
+            for (int span = chart.size() - 1; span > 0; span--) {
+                for (int begin = 0; begin < chart.size() - span; begin++) {
+                    int end = begin + span;
+                    System.out.println(spacer + begin + "," + end);
+                    System.out.println(spacer + chart.get(begin).get(end));
                 }
-                
+                spacer += "\t";
+            }
+            System.out.println("-------------------- ***** --------------------");
+        }
+       
+        private Tree<String> makeTree(List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, int begin, int end, Object A) {
+            
+            Triplet<Integer,Object,Object> backptr = backs.get(begin).get(end).get(A);
+            String tag = getParent(A);
+
+            if (backptr == null) { 
+                // No back pointer. Terminal
+                return new Tree<String>(tag);
+            } 
+            
+            List<Tree<String>> children = new ArrayList<Tree<String>>();
+            if (backptr.getFirst() < 0) {
+                // Single back pointer. Unary rule 
+                Object B = backptr.getSecond();
+                Tree<String> child = makeTree(backs, begin, end, B); 
+                children.add(child);
+            } else {
+                // Two back pointers. Binary rule
+                int split = backptr.getFirst();
+                Object B = backptr.getSecond();
+                Object C = backptr.getThird();
+                Tree<String> childB = makeTree(backs, begin, split, B);
+                Tree<String> childC = makeTree(backs, split, end, C);
+                children.add(childB);
+                children.add(childC);
+            }
+            return new Tree<String>(tag, children);
+        }  
+    
+        public Tree<String> getBestParse(List<String> sentence) {
+            // TODO: implement this method
+            int n = sentence.size();
+           
+            List<List<Counter<Object>>> scores = new ArrayList<List<Counter<Object>>>(n+1);
+            for (int i = 0; i < n+1; i++) {
+                List<Counter<Object>> row = new ArrayList<Counter<Object>>(n+1);
+                for (int j = 0; j < n+1; j++) {
+                    row.add(new Counter<Object>());
+                }
+                scores.add(row);
+            }
+            List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs = 
+                new ArrayList<List<Map<Object,Triplet<Integer,Object,Object>>>>(n+1);
+            for (int i = 0; i < n+1; i++) {
+                List<Map<Object,Triplet<Integer,Object,Object>>> row = new ArrayList<Map<Object,Triplet<Integer,Object,Object>>>(n+1);
+                for (int j = 0; j < n+1; j++) {
+                    row.add(new HashMap<Object,Triplet<Integer,Object,Object>>());
+                }
+                backs.add(row);
+            }
+            
+            System.out.println("scores=" + scores.size() + "x" + scores.get(0).size());
+            System.out.println("backs=" + backs.size() + "x" + backs.get(0).size());
+            printChart(scores, "scores");
+                          
+            // First the Lexicon
+            
+            for (int i = 0; i < n; i++) {
+                String word = sentence.get(i);
+                for (String tag : lexicon.getAllTags()) {
+                    UnaryRule A = new UnaryRule(tag, word);
+                    A.setScore(lexicon.scoreTagging(word, tag));
+                    scores.get(i).get(i+1).setCount(A, A.getScore()); 
+                    backs.get(i).get(i+1).put(A, null);
+                }
+
                 // Handle unaries
                 boolean added = true;
                 while (added) {
                     added = false;
-                    for (Object oB : A_scores.keySet()) {
-                        BinaryRule B = (BinaryRule)oB;
+                    Counter<Object> A_scores = scores.get(i).get(i+1);
+                    // Don't modify the dict we are iterating
+                    List<Object> keys = new ArrayList<Object>();
+                    for (Object k: A_scores.keySet()) {
+                        keys.add(k);
+                    }
+                    
+                    for (Object oB : keys) {
+                        UnaryRule B = (UnaryRule)oB;
                         for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
-                            double prob = B.getScore() * A_scores.get(B); 
-                            if (prob > A_scores.get(A)) {
-                                A_scores.put(A, prob);
-                                A_backs.put(A, new Triplet(-1, B, null));
-                                added = true;
+                             if (A_scores.getCount(B) > 0.0) {
+                                double prob = B.getScore() * A_scores.getCount(B); 
+                                if (prob > A_scores.getCount(A)) {
+                                    A_scores.setCount(A, prob);
+                                    backs.get(i).get(i+1).put(A, new Triplet<Integer,Object,Object>(-1, B, null));
+                                }
+                            }
+                        } 
+                    }    
+                }
+            }
+            
+            printChart(scores, "scores with Lexicon");
+
+            // Do higher layers  
+            // Naming is based on rules: A -> B,C
+            for (int span = 2; span <= n; span++) {
+                for (int begin = 0; begin <= n - span; begin++) {
+                    int end = begin + span;
+                    Counter<Object> A_scores = scores.get(begin).get(end);
+                    Map<Object,Triplet<Integer,Object,Object>> A_backs = backs.get(begin).get(end);
+                    
+                    for (int split = begin + 1; split < end; split++) {
+                        Counter<Object> B_scores = scores.get(begin).get(split);
+                        Counter<Object> C_scores = scores.get(split).get(end);
+                        for (Object B : B_scores.keySet()) { 
+                            //BinaryRule B = (BinaryRule)oB;
+                            for (BinaryRule A : grammar.getBinaryRulesByLeftChild(getParent(B))) {
+                                for (Object C : C_scores.keySet()) {
+                                     if (getParent(C) == A.getRightChild()) {
+                                        // Now have A which has B as left child and C as right child 
+                                        double prob = A.getScore() * B_scores.getCount(B) * C_scores.getCount(C);
+                                        if (prob > A_scores.getCount(A)) {
+                                            A_scores.setCount(A, prob);
+                                            A_backs.put(A, new Triplet<Integer,Object,Object>(-1, B, C));
+                                        }
+                                    } 
+                                }
                             }
                         }
                     }
-                }
-            }    
-        }
-        
-        Map<Object,Double> topOfChart = scores.get(0).get(n);
-        
-        System.out.println("topOfChart: " + topOfChart.size());
-        for (Object o: topOfChart.keySet()) {
-            System.out.println("o=" + o + ", score=" + topOfChart.get(o));
-        }
-        
-        return null;
-    }
+                    
+                    // Handle unaries
+                    boolean added = true;
+                    while (added) {
+                        added = false;
+                        for (Object oB : A_scores.keySet()) {
+                            BinaryRule B = (BinaryRule)oB;
+                            for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
+                                double prob = B.getScore() * A_scores.getCount(B); 
+                                if (prob > A_scores.getCount(A)) {
+                                    A_scores.setCount(A, prob);
+                                    A_backs.put(A, new Triplet<Integer,Object,Object>(-1, B, null));
+                                    added = true;
+                                }
+                            }
+                        }
+                    }
+                }    
+            }
 
-  }
+            printChart(scores, "scores with Lexicon and Grammar");
+            
+            Counter<Object> topOfChart = scores.get(0).get(n);
+            
+            System.out.println("topOfChart: " + topOfChart.size());
+            for (Object o: topOfChart.keySet()) {
+                System.out.println("o=" + o + ", score=" + topOfChart.getCount(o));
+            }
+
+            Object bestKey = topOfChart.argMax();
+            System.out.println("bestKey=" + bestKey);
+            
+            Tree<String> result = makeTree(backs, 0, n, bestKey);
+            
+            return result;
+        }
+        
+    }
 
   // BaselineParser =============================================================
 
@@ -233,12 +292,12 @@ public class PCFGParserTester {
     }
 
     private Tree<String> merge(Tree<String> leftTree, Tree<String> rightTree) {
-      int span = leftTree.getYield().size() + rightTree.getYield().size();
-      String mostFrequentLabel = spanToCategories.getCounter(span).argMax();
-      List<Tree<String>> children = new ArrayList<Tree<String>>();
-      children.add(leftTree);
-      children.add(rightTree);
-      return new Tree<String>(mostFrequentLabel, children);
+        int span = leftTree.getYield().size() + rightTree.getYield().size();
+        String mostFrequentLabel = spanToCategories.getCounter(span).argMax();
+        List<Tree<String>> children = new ArrayList<Tree<String>>();
+        children.add(leftTree);
+        children.add(rightTree);
+        return new Tree<String>(mostFrequentLabel, children);
     }
 
     private Tree<String> addRoot(Tree<String> tree) {
@@ -255,9 +314,9 @@ public class PCFGParserTester {
     }
     
     private Tree<String> getBestKnownParse(List<String> tags, List<String> sentence) {
-      Tree<String> parse = knownParses.getCounter(tags).argMax().deepCopy();
-      parse.setWords(sentence);
-      return parse;
+        Tree<String> parse = knownParses.getCounter(tags).argMax().deepCopy();
+        parse.setWords(sentence);
+        return parse;
     }
 
     private List<String> getBaselineTagging(List<String> sentence) {

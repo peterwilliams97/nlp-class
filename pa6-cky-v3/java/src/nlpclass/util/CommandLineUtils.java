@@ -17,19 +17,19 @@ public class CommandLineUtils {
    * '-size 5 -verbose' will produce a map with entries (-size, 5) and
    * (-verbose, null).
    */
-  public static Map<String, String> simpleCommandLineParser(String[] args) {
-    Map<String, String> map = new HashMap<String, String>();
-    for (int i = 0; i <= args.length; i++) {
-      String key = (i > 0 ? args[i-1] : null);
-      String value = (i < args.length ? args[i] : null);
-      if (key == null || key.startsWith("-")) {
-        if (value != null && value.startsWith("-"))
-          value = null;
-        if (key != null || value != null)
-        map.put(key, value);
-      }
+    public static Map<String, String> simpleCommandLineParser(String[] args) {
+        Map<String, String> map = new HashMap<String, String>();
+        for (int i = 0; i <= args.length; i++) {
+            String key = (i > 0 ? args[i-1] : null);
+            String value = (i < args.length ? args[i] : null);
+            if (key == null || key.startsWith("-")) {
+                if (value != null && value.startsWith("-"))
+                    value = null;
+                if (key != null || value != null)
+                    map.put(key, value);
+            }
+        }
+        return map;
     }
-    return map;
-  }
 
 }

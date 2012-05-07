@@ -6,7 +6,7 @@ package nlpclass.util;
  * @author Dan Klein
  */
 public class IdentityCounter<E> extends Counter<E> {
-  public IdentityCounter() {
-    super(new MapFactory.IdentityHashMapFactory<E,Double>());
-  }
+    public IdentityCounter() {
+        super(new MapFactory.IdentityHashMapFactory<E,Double>());
+    }
 }
