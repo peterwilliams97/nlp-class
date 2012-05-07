@@ -36,7 +36,7 @@ public class PCFGParserTester {
 
     /**
      * The PCFG Parser you will implement.
-    */
+     */
     public static class PCFGParser implements Parser {
     
         private Grammar grammar;
@@ -46,12 +46,24 @@ public class PCFGParserTester {
             // TODO: before you generate your grammar, the training trees
             // need to be binarized so that rules are at most binary
 
+                     
+            
             List<Tree<String>> annotatedTrees = new ArrayList<Tree<String>>();
             for (Tree<String> tree: trainTrees) {
                  annotatedTrees.add(TreeAnnotations.annotateTree(tree));
             }
+            
+            System.out.println("trainTrees: " );
+            for (Tree<String> tree: trainTrees)  System.out.println("  " + tree);
+            System.out.println("annotatedTrees: " );
+            for (Tree<String> tree: annotatedTrees)  System.out.println("  " + tree);
+             
             lexicon = new Lexicon(annotatedTrees);
             grammar = new Grammar(annotatedTrees);
+            
+            System.out.println("lexicon: " + lexicon.getAllTags());
+            System.out.println("grammar: " + grammar);
+            //System.exit(-1);
         }
         
         private static String getParent(Object o) {
@@ -73,11 +85,22 @@ public class PCFGParserTester {
                 for (int begin = 0; begin < chart.size() - span; begin++) {
                     int end = begin + span;
                     System.out.println(spacer + begin + "," + end);
-                    System.out.println(spacer + chart.get(begin).get(end));
+                    Counter<Object> counter = chart.get(begin).get(end);
+                    for (Object o: counter.keySet()) {
+                        System.out.println(spacer + " " + o  + " : " + counter.getCount(o));
+                    }
                 }
                 spacer += "\t";
             }
             System.out.println("-------------------- ***** --------------------");
+        }
+        
+        private static List<Object> copyKeys(Counter<Object> counter) {
+            List<Object> keys = new ArrayList<Object>();
+            for (Object k: counter.keySet()) {
+                keys.add(k);
+            }
+            return keys;
         }
        
         private Tree<String> makeTree(List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, int begin, int end, Object A) {
@@ -152,12 +175,9 @@ public class PCFGParserTester {
                     added = false;
                     Counter<Object> A_scores = scores.get(i).get(i+1);
                     // Don't modify the dict we are iterating
-                    List<Object> keys = new ArrayList<Object>();
-                    for (Object k: A_scores.keySet()) {
-                        keys.add(k);
-                    }
+                    List<Object> A_keys = copyKeys(A_scores);
                     
-                    for (Object oB : keys) {
+                    for (Object oB : A_keys) {
                         UnaryRule B = (UnaryRule)oB;
                         for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
                              if (A_scores.getCount(B) > 0.0) {
@@ -165,32 +185,43 @@ public class PCFGParserTester {
                                 if (prob > A_scores.getCount(A)) {
                                     A_scores.setCount(A, prob);
                                     backs.get(i).get(i+1).put(A, new Triplet<Integer,Object,Object>(-1, B, null));
+                                    added = true;
                                 }
                             }
                         } 
                     }    
                 }
             }
-            
+
             printChart(scores, "scores with Lexicon");
 
             // Do higher layers  
             // Naming is based on rules: A -> B,C
-            for (int span = 2; span <= n; span++) {
-                for (int begin = 0; begin <= n - span; begin++) {
+            for (int span = 2; span < n + 1; span++) {
+                System.out.println("span=" + span);
+                for (int begin = 0; begin < n + 1 - span; begin++) {
                     int end = begin + span;
                     Counter<Object> A_scores = scores.get(begin).get(end);
                     Map<Object,Triplet<Integer,Object,Object>> A_backs = backs.get(begin).get(end);
                     
                     for (int split = begin + 1; split < end; split++) {
+                        
                         Counter<Object> B_scores = scores.get(begin).get(split);
                         Counter<Object> C_scores = scores.get(split).get(end);
+                        //System.out.println(" begin=" + begin + ",split=" + split + ",end=" + end 
+                        //        + ", B_scores=" + B_scores.size() + ", C_scores=" + C_scores.size());
                         for (Object B : B_scores.keySet()) { 
                             //BinaryRule B = (BinaryRule)oB;
+                            System.out.println(" B=" + B);
                             for (BinaryRule A : grammar.getBinaryRulesByLeftChild(getParent(B))) {
+                                System.out.println("  * A=" + A);
                                 for (Object C : C_scores.keySet()) {
-                                     if (getParent(C) == A.getRightChild()) {
-                                        // Now have A which has B as left child and C as right child 
+                                    //System.out.println("   ** C=" + C);
+                                    //System.out.println("        -- " + getParent(C));
+                                    //System.out.println("        ++ " + A.getRightChild());
+                                    if (getParent(C) == A.getRightChild()) {
+                                        System.out.println("  C=" + C);
+                                        // We now have A which has B as left child and C as right child 
                                         double prob = A.getScore() * B_scores.getCount(B) * C_scores.getCount(C);
                                         if (prob > A_scores.getCount(A)) {
                                             A_scores.setCount(A, prob);
@@ -201,18 +232,21 @@ public class PCFGParserTester {
                             }
                         }
                     }
+                    //System.exit(444);
                     
-                    // Handle unaries
+                    
+                    // Handle unaries: A -> B
                     boolean added = true;
                     while (added) {
                         added = false;
-                        for (Object oB : A_scores.keySet()) {
-                            BinaryRule B = (BinaryRule)oB;
-                            for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
-                                double prob = B.getScore() * A_scores.getCount(B); 
+                        // Don't modify the dict we are iterating
+                        List<Object> A_keys = copyKeys(A_scores);
+                        for (Object oB : A_keys) {
+                            for (UnaryRule A : grammar.getUnaryRulesByChild(getParent(oB))) {
+                                double prob = A.getScore() * A_scores.getCount(oB); 
                                 if (prob > A_scores.getCount(A)) {
                                     A_scores.setCount(A, prob);
-                                    A_backs.put(A, new Triplet<Integer,Object,Object>(-1, B, null));
+                                    A_backs.put(A, new Triplet<Integer,Object,Object>(-1, oB, null));
                                     added = true;
                                 }
                             }
@@ -359,7 +393,6 @@ public class PCFGParserTester {
 
   }
 
-
   // TreeAnnotations ============================================================
 
   /**
@@ -367,72 +400,66 @@ public class PCFGParserTester {
    * the parser's use, and debinarizing and unannotating them for
    * scoring.
    */
-  public static class TreeAnnotations {
+    public static class TreeAnnotations {
 
-    public static Tree<String> annotateTree(Tree<String> unAnnotatedTree) {
+        public static Tree<String> annotateTree(Tree<String> unAnnotatedTree) {
 
-      // Currently, the only annotation done is a lossless binarization
+            // Currently, the only annotation done is a lossless binarization
 
-      // TODO: change the annotation from a lossless binarization to a
-      // finite-order markov process (try at least 1st and 2nd order)
-      // mark nodes with the label of their parent nodes, giving a second
-      // order vertical markov process
+            // TODO: change the annotation from a lossless binarization to a
+            // finite-order markov process (try at least 1st and 2nd order)
+            // mark nodes with the label of their parent nodes, giving a second
+            // order vertical markov process
 
-      return binarizeTree(unAnnotatedTree);
-
-    }
-
+            return binarizeTree(unAnnotatedTree);
+        }
     
-    private static Tree<String> binarizeTree(Tree<String> tree) {
-      String label = tree.getLabel();
-      if (tree.isLeaf())
-        return new Tree<String>(label);
-      if (tree.getChildren().size() == 1) {
-        return new Tree<String>
-          (label, 
-           Collections.singletonList(binarizeTree(tree.getChildren().get(0))));
-      }
-      // otherwise, it's a binary-or-more local tree, 
-      // so decompose it into a sequence of binary and unary trees.
-      String intermediateLabel = "@"+label+"->";
-      Tree<String> intermediateTree =
-        binarizeTreeHelper(tree, 0, intermediateLabel);
-      return new Tree<String>(label, intermediateTree.getChildren());
-    }
+        private static Tree<String> binarizeTree(Tree<String> tree) {
+            String label = tree.getLabel();
+            if (tree.isLeaf()) {
+                return new Tree<String>(label);
+            }
+            if (tree.getChildren().size() == 1) {
+                return new Tree<String>(label, Collections.singletonList(binarizeTree(tree.getChildren().get(0))));
+            }
+            // otherwise, it's a binary-or-more local tree, 
+            // so decompose it into a sequence of binary and unary trees.
+            String intermediateLabel = "@" + label + "->";
+            Tree<String> intermediateTree = binarizeTreeHelper(tree, 0, intermediateLabel);
+            return new Tree<String>(label, intermediateTree.getChildren());
+        }
 
-    private static Tree<String> binarizeTreeHelper(Tree<String> tree,
+        private static Tree<String> binarizeTreeHelper(Tree<String> tree,
                                                    int numChildrenGenerated, 
                                                    String intermediateLabel) {
-      Tree<String> leftTree = tree.getChildren().get(numChildrenGenerated);
-      List<Tree<String>> children = new ArrayList<Tree<String>>();
-      children.add(binarizeTree(leftTree));
-      if (numChildrenGenerated < tree.getChildren().size() - 1) {
-        Tree<String> rightTree = 
-          binarizeTreeHelper(tree, numChildrenGenerated + 1, 
-                             intermediateLabel + "_" + leftTree.getLabel());
-        children.add(rightTree);
-      }
-      return new Tree<String>(intermediateLabel, children);
-    } 
+            Tree<String> leftTree = tree.getChildren().get(numChildrenGenerated);
+            List<Tree<String>> children = new ArrayList<Tree<String>>();
+            children.add(binarizeTree(leftTree));
+            if (numChildrenGenerated < tree.getChildren().size() - 1) {
+                Tree<String> rightTree = binarizeTreeHelper(tree, numChildrenGenerated + 1, 
+                                                intermediateLabel + "_" + leftTree.getLabel());
+                children.add(rightTree);
+            }
+            return new Tree<String>(intermediateLabel, children);
+        } 
  
-    public static Tree<String> unAnnotateTree(Tree<String> annotatedTree) {
+        public static Tree<String> unAnnotateTree(Tree<String> annotatedTree) {
 
-      // Remove intermediate nodes (labels beginning with "@"
-      // Remove all material on node labels which follow their base symbol 
-      // (cuts at the leftmost -, ^, or : character)
-      // Examples: a node with label @NP->DT_JJ will be spliced out, 
-      // and a node with label NP^S will be reduced to NP
+          // Remove intermediate nodes (labels beginning with "@"
+          // Remove all material on node labels which follow their base symbol 
+          // (cuts at the leftmost -, ^, or : character)
+          // Examples: a node with label @NP->DT_JJ will be spliced out, 
+          // and a node with label NP^S will be reduced to NP
 
-      Tree<String> debinarizedTree =
-        Trees.spliceNodes(annotatedTree, new Filter<String>() {
-          public boolean accept(String s) {
-            return s.startsWith("@");
-          }
-        });
-      Tree<String> unAnnotatedTree = 
-        (new Trees.FunctionNodeStripper()).transformTree(debinarizedTree);
-      return unAnnotatedTree;
-    }
+            Tree<String> debinarizedTree =
+                Trees.spliceNodes(annotatedTree, new Filter<String>() {
+                    public boolean accept(String s) {
+                        return s.startsWith("@");
+                    }
+                });
+            Tree<String> unAnnotatedTree = (new Trees.FunctionNodeStripper()).transformTree(debinarizedTree);
+            return unAnnotatedTree;
+        }
   }
 
 
@@ -442,61 +469,61 @@ public class PCFGParserTester {
    * Simple default implementation of a lexicon, which scores word,
    * tag pairs with a smoothed estimate of P(tag|word)/P(tag).
    */
-  public static class Lexicon {
+    public static class Lexicon {
 
-    CounterMap<String,String> wordToTagCounters = new CounterMap<String, String>();
-    double totalTokens = 0.0;
-    double totalWordTypes = 0.0;
-    Counter<String> tagCounter = new Counter<String>();
-    Counter<String> wordCounter = new Counter<String>();
-    Counter<String> typeTagCounter = new Counter<String>();
+        CounterMap<String,String> wordToTagCounters = new CounterMap<String, String>();
+        double totalTokens = 0.0;
+        double totalWordTypes = 0.0;
+        Counter<String> tagCounter = new Counter<String>();
+        Counter<String> wordCounter = new Counter<String>();
+        Counter<String> typeTagCounter = new Counter<String>();
 
-    public Set<String> getAllTags() {
-      return tagCounter.keySet();
-    }
-
-    public boolean isKnown(String word) {
-      return wordCounter.keySet().contains(word);
-    }
-
-    /* Returns a smoothed estimate of P(word|tag) */
-    public double scoreTagging(String word, String tag) {
-      double p_tag = tagCounter.getCount(tag) / totalTokens;
-      double c_word = wordCounter.getCount(word);
-      double c_tag_and_word = wordToTagCounters.getCount(word, tag);
-      if (c_word < 10) { // rare or unknown
-        c_word += 1.0;
-        c_tag_and_word += typeTagCounter.getCount(tag) / totalWordTypes;
-      }
-      double p_word = (1.0 + c_word) / (totalTokens + totalWordTypes);
-      double p_tag_given_word = c_tag_and_word / c_word;
-      return p_tag_given_word / p_tag * p_word;
-    }
-
-    /* Builds a lexicon from the observed tags in a list of training trees. */
-    public Lexicon(List<Tree<String>> trainTrees) {
-      for (Tree<String> trainTree : trainTrees) {
-        List<String> words = trainTree.getYield();
-        List<String> tags = trainTree.getPreTerminalYield();
-        for (int position = 0; position < words.size(); position++) {
-          String word = words.get(position);
-          String tag = tags.get(position);
-          tallyTagging(word, tag);
+        public Set<String> getAllTags() {
+            return tagCounter.keySet();
         }
-      }
-    }
 
-    private void tallyTagging(String word, String tag) {
-      if (! isKnown(word)) {
-        totalWordTypes += 1.0;
-        typeTagCounter.incrementCount(tag, 1.0);
-      }
-      totalTokens += 1.0;
-      tagCounter.incrementCount(tag, 1.0);
-      wordCounter.incrementCount(word, 1.0);
-      wordToTagCounters.incrementCount(word, tag, 1.0);
+        public boolean isKnown(String word) {
+            return wordCounter.keySet().contains(word);
+        }
+
+        /* Returns a smoothed estimate of P(word|tag) */
+        public double scoreTagging(String word, String tag) {
+            double p_tag = tagCounter.getCount(tag) / totalTokens;
+            double c_word = wordCounter.getCount(word);
+            double c_tag_and_word = wordToTagCounters.getCount(word, tag);
+            if (c_word < 10) { // rare or unknown
+                c_word += 1.0;
+                c_tag_and_word += typeTagCounter.getCount(tag) / totalWordTypes;
+            }
+            double p_word = (1.0 + c_word) / (totalTokens + totalWordTypes);
+            double p_tag_given_word = c_tag_and_word / c_word;
+            return p_tag_given_word / p_tag * p_word;
+        }
+
+        /* Builds a lexicon from the observed tags in a list of training trees. */
+        public Lexicon(List<Tree<String>> trainTrees) {
+            for (Tree<String> trainTree : trainTrees) {
+                List<String> words = trainTree.getYield();
+                List<String> tags = trainTree.getPreTerminalYield();
+                for (int position = 0; position < words.size(); position++) {
+                    String word = words.get(position);
+                    String tag = tags.get(position);
+                    tallyTagging(word, tag);
+                }
+            }
+        }
+
+        private void tallyTagging(String word, String tag) {
+            if (! isKnown(word)) {
+                totalWordTypes += 1.0;
+                typeTagCounter.incrementCount(tag, 1.0);
+            }
+            totalTokens += 1.0;
+            tagCounter.incrementCount(tag, 1.0);
+            wordCounter.incrementCount(word, 1.0);
+            wordToTagCounters.incrementCount(word, tag, 1.0);
+        }
     }
-  }
 
 
   // Grammar ====================================================================
