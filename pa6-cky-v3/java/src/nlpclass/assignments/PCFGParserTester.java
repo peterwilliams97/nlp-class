@@ -78,7 +78,7 @@ public class PCFGParserTester {
         }
         
         // Print a CKY chart
-        private static void printChart(List<List<Counter<Object>>> chart, 
+        private static void printChart(List<List<Map<Object,Double>>> chart, 
                                 List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs, 
                                 String name) {
             System.out.println("-------------------- $$$$$ --------------------");
@@ -88,11 +88,11 @@ public class PCFGParserTester {
                 for (int begin = 0; begin < chart.size() - span; begin++) {
                     int end = begin + span;
                     System.out.println(spacer + begin + "," + end);
-                    Counter<Object> counter = chart.get(begin).get(end);
+                    Map<Object,Double> counter = chart.get(begin).get(end);
                     Map<Object,Triplet<Integer,Object,Object>> backptr = backs.get(begin).get(end);
                     for (Object o: counter.keySet()) {
                         System.out.println(spacer + " " + o  
-                            + " : " + counter.getCount(o) 
+                            + " : " + counter.get(o) 
                             + " : " + backptr.get(o));
                     }
                 }
@@ -101,7 +101,7 @@ public class PCFGParserTester {
             System.out.println("-------------------- ***** --------------------");
         }
 
-        private static List<Object> copyKeys(Counter<Object> counter) {
+        private static List<Object> copyKeys(Map<Object,Double> counter) {
             List<Object> keys = new ArrayList<Object>();
             for (Object k: counter.keySet()) {
                 keys.add(k);
@@ -145,21 +145,18 @@ public class PCFGParserTester {
         public Tree<String> getBestParse(List<String> sentence) {
             // TODO: implement this method
             int n = sentence.size();
-            
+
             //System.out.println("getBestParse: n=" + n);
-           
-            //Object[][] scores2 = new Object[n+1][n+1];
-            
-            List<List<Counter<Object>>> scores = new ArrayList<List<Counter<Object>>>(n+1);
+
+            List<List<Map<Object,Double>>> scores = new ArrayList<List<Map<Object,Double>>>(n+1);
             for (int i = 0; i < n+1; i++) {
-                List<Counter<Object>> row = new ArrayList<Counter<Object>>(n+1);
+                List<Map<Object,Double>> row = new ArrayList<Map<Object,Double>>(n+1);
                 for (int j = 0; j < n+1; j++) {
-                    row.add(new Counter<Object>());
+                    row.add(new HashMap<Object,Double>());
                 }
                 scores.add(row);
             }
-            List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs = 
-                new ArrayList<List<Map<Object,Triplet<Integer,Object,Object>>>>(n+1);
+            List<List<Map<Object,Triplet<Integer,Object,Object>>>> backs = new ArrayList<List<Map<Object,Triplet<Integer,Object,Object>>>>(n+1);
             for (int i = 0; i < n+1; i++) {
                 List<Map<Object,Triplet<Integer,Object,Object>>> row = new ArrayList<Map<Object,Triplet<Integer,Object,Object>>>(n+1);
                 for (int j = 0; j < n+1; j++) {
@@ -179,32 +176,43 @@ public class PCFGParserTester {
                 String word = sentence.get(i);
                 for (String tag : lexicon.getAllTags()) {
                     UnaryRule A = new UnaryRule(tag, word);
-                    A.setScore(lexicon.scoreTagging(word, tag));
-                    scores.get(i).get(i+1).setCount(A, A.getScore()); 
+                    A.setScore(Math.log(lexicon.scoreTagging(word, tag)));
+                    scores.get(i).get(i+1).put(A, A.getScore()); 
                     backs.get(i).get(i+1).put(A, null);
                 }
 
+				//System.out.println("Starting unaries: i=" + i + ",n=" + n );
                 // Handle unaries
                 boolean added = true;
                 while (added) {
                     added = false;
-                    Counter<Object> A_scores = scores.get(i).get(i+1);
+                    Map<Object,Double> A_scores = scores.get(i).get(i+1);
                     // Don't modify the dict we are iterating
                     List<Object> A_keys = copyKeys(A_scores);
+					//for (int j = 0; j < 5 && j < A_keys.size(); j++) {
+					//	System.out.print("," + j + "=" + A_scores.get(A_keys.get(j)));  
+					//}
                     
                     for (Object oB : A_keys) {
                         UnaryRule B = (UnaryRule)oB;
                         for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
-                             if (A_scores.getCount(B) > 0.0) {
-                                double prob = B.getScore() * A_scores.getCount(B); 
-                                if (prob > A_scores.getCount(A)) {
-                                    A_scores.setCount(A, prob);
-                                    backs.get(i).get(i+1).put(A, new Triplet<Integer,Object,Object>(-1, B, null));
-                                    added = true;
-                                }
-                            }
+                            double prob = Math.log(A.getScore()) + A_scores.get(B); 
+                            if (prob > -1000.0) {
+								
+								if (!A_scores.containsKey(A) || prob > A_scores.get(A)) {
+									//System.out.print(" *A=" + A + ", B=" + B);
+									//System.out.print(",  prob=" +  prob);
+									//System.out.println(",  A_scores.get(A)=" +  A_scores.get(A));
+									A_scores.put(A, prob);
+									backs.get(i).get(i+1).put(A, new Triplet<Integer,Object,Object>(-1, B, null));
+									added = true;
+								}
+								//System.out.println(", added=" + added);
+							}
+							
                         } 
-                    }    
+                    } 
+					//System.out.println(", A_scores=" + A_scores.size() + ", added=" + added);	
                 }
             }
 
@@ -215,26 +223,22 @@ public class PCFGParserTester {
         
             long startTime = new Date().getTime();
             for (int span = 2; span < n + 1; span++) {
-                double elapsed = ((double)new Date().getTime() - startTime) /1000.0;
-                //System.out.println("span=" + span + ", elapsed=" + elapsed);
+
                 for (int begin = 0; begin < n + 1 - span; begin++) {
                     int end = begin + span;
 
-                    Counter<Object> A_scores = scores.get(begin).get(end);
+                    Map<Object,Double> A_scores = scores.get(begin).get(end);
                     Map<Object,Triplet<Integer,Object,Object>> A_backs = backs.get(begin).get(end);
 
                     for (int split = begin + 1; split < end; split++) {
 
-                        Counter<Object> B_scores = scores.get(begin).get(split);
-                        Counter<Object> C_scores = scores.get(split).get(end);
-                        
-                        long inner_loops = 0; 
-                        long matches = 0;    
+                        Map<Object,Double> B_scores = scores.get(begin).get(split);
+                        Map<Object,Double> C_scores = scores.get(split).get(end);
                         
                         List<Object> B_list = new ArrayList<Object>(B_scores.keySet());
                         List<Object> C_list = new ArrayList<Object>(C_scores.keySet());
 
-                        // This is a key optimization.
+                        // This is a key optimization. !@#$
                         // It avoids a B_list.size() x C_list.size() search in the for (Object B : B_list) loop 
                         Map<String,List<Object>> C_map = new HashMap<String,List<Object>>();
                         for (Object C : C_list) {
@@ -250,9 +254,9 @@ public class PCFGParserTester {
                                 if (C_map.containsKey(A.getRightChild())) {
                                     for (Object C : C_map.get(A.getRightChild())) {
                                         // We now have A which has B as left child and C as right child 
-                                        double prob = A.getScore() * B_scores.getCount(B) * C_scores.getCount(C);
-                                        if (prob > A_scores.getCount(A)) {
-                                            A_scores.setCount(A, prob);
+                                        double prob = Math.log(A.getScore()) + B_scores.get(B) + C_scores.get(C);
+                                        if (!A_scores.containsKey(A) || prob > A_scores.get(A)) {
+                                            A_scores.put(A, prob);
                                             A_backs.put(A, new Triplet<Integer,Object,Object>(split, B, C));
                                         }
                                     } 
@@ -270,9 +274,9 @@ public class PCFGParserTester {
                         List<Object> A_keys = copyKeys(A_scores);
                         for (Object oB : A_keys) {
                             for (UnaryRule A : grammar.getUnaryRulesByChild(getParent(oB))) {
-                                double prob = A.getScore() * A_scores.getCount(oB); 
-                                if (prob > A_scores.getCount(A)) {
-                                    A_scores.setCount(A, prob);
+                                double prob = Math.log(A.getScore()) + A_scores.get(oB); 
+                                if (!A_scores.containsKey(A) || prob > A_scores.get(A)) {
+                                    A_scores.put(A, prob);
                                     A_backs.put(A, new Triplet<Integer,Object,Object>(-1, oB, null));
                                     added = true;
                                 }
@@ -285,9 +289,9 @@ public class PCFGParserTester {
 
             //printChart(scores, backs, "scores with Lexicon and Grammar");
             
-            Counter<Object> topOfChart = scores.get(0).get(n);
+            Map<Object,Double> topOfChart = scores.get(0).get(n);
             
-            //System.out.println("topOfChart: " + topOfChart.size());
+            System.out.println("topOfChart: " + topOfChart.size());
             /*
             for (Object o: topOfChart.keySet()) {
                 System.out.println("o=" + o + ", score=" + topOfChart.getCount(o));
@@ -295,16 +299,32 @@ public class PCFGParserTester {
             */
          
             // All parses have "ROOT" at top of tree
-            Object bestKey = topOfChart.argMax();
+            Object bestKey = null;
+            Object secondBestKey = null;
             double bestScore = Double.NEGATIVE_INFINITY;
+            double secondBestScore = Double.NEGATIVE_INFINITY;
             for (Object key: topOfChart.keySet()) {
-                double score = topOfChart.getCount(key);
-                if ("ROOT".equals(getParent(key)) && score > bestScore) {
+                double score = topOfChart.get(key);
+                if (score >= secondBestScore || secondBestKey == null) {
+                    secondBestKey = key;
+                    secondBestScore = score;
+                }
+                if ("ROOT".equals(getParent(key)) && (score >= bestScore || bestKey == null)) {
                     bestKey = key;
                     bestScore = score;
                 }
             }
-            //System.out.println("bestKey=" + bestKey);
+            
+           if (bestKey == null) {
+                bestKey = secondBestKey;
+                System.out.println("secondBestKey=" + secondBestKey);
+            }
+            if (bestKey == null) {
+                for (Object key: topOfChart.keySet()) {
+                    System.out.println("val=" + topOfChart.get(key) + ", key=" + key);
+                }
+            }
+            System.out.println("bestKey=" + bestKey + ", log(prob)=" + topOfChart.get(bestKey));
             
             Tree<String> result = makeTree(backs, 0, n, bestKey);
             if (!"ROOT".equals(result.getLabel())) {
@@ -469,12 +489,14 @@ public class PCFGParserTester {
                 return new Tree<String>(label);
             }
             
+            /*
+            // [Average]    P: 48.53   R: 47.67   F1: 48.10   EX:  4.85
             if (tree.getChildren().size() == 1) {
                 return new Tree<String>(label, Collections.singletonList(binarizeTree(tree.getChildren().get(0))));
             }
+          */
           
-          /*
-            [Average]    P: 48.53   R: 47.67   F1: 48.10   EX:  4.85              
+          //  [Average]    P: 48.53   R: 47.67   F1: 48.10   EX:  4.85              
             if (tree.getChildren().size() <= 2) {
                 List<Tree<String>> children = new ArrayList<Tree<String>>(2);
                 for (Tree<String> child: tree.getChildren()) { 
@@ -482,7 +504,7 @@ public class PCFGParserTester {
                 }
                 return new Tree<String>(label, children);
             }
-         */ 
+       
             // otherwise, it's a binary-or-more local tree, 
             // so decompose it into a sequence of binary and unary trees.
             String intermediateLabel = "@" + label + "->";
@@ -586,7 +608,6 @@ public class PCFGParserTester {
         }
     }
 
-
   // Grammar ====================================================================
 
   /**
@@ -641,7 +662,7 @@ public class PCFGParserTester {
         }
 
         private void addUnary(UnaryRule unaryRule) {
-            CollectionUtils.addToValueList(unaryRulesByChild,  unaryRule.getChild(), unaryRule);
+            CollectionUtils.addToValueList(unaryRulesByChild, unaryRule.getChild(), unaryRule);
         }
 
         /* A builds PCFG using the observed counts of binary and unary
@@ -695,8 +716,9 @@ public class PCFGParserTester {
         }
 
         private BinaryRule makeBinaryRule(Tree<String> tree) {
-            return new BinaryRule(tree.getLabel(), tree.getChildren().get(0).getLabel(), 
-                                tree.getChildren().get(1).getLabel());
+            return new BinaryRule(tree.getLabel(), 
+                                  tree.getChildren().get(0).getLabel(), 
+                                  tree.getChildren().get(1).getLabel());
         }
     }
 
