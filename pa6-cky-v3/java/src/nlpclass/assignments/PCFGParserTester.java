@@ -181,7 +181,7 @@ public class PCFGParserTester {
                     backs.get(i).get(i+1).put(A, null);
                 }
 
-				//System.out.println("Starting unaries: i=" + i + ",n=" + n );
+                //System.out.println("Starting unaries: i=" + i + ",n=" + n );
                 // Handle unaries
                 boolean added = true;
                 while (added) {
@@ -189,30 +189,30 @@ public class PCFGParserTester {
                     Map<Object,Double> A_scores = scores.get(i).get(i+1);
                     // Don't modify the dict we are iterating
                     List<Object> A_keys = copyKeys(A_scores);
-					//for (int j = 0; j < 5 && j < A_keys.size(); j++) {
-					//	System.out.print("," + j + "=" + A_scores.get(A_keys.get(j)));  
-					//}
+                    //for (int j = 0; j < 5 && j < A_keys.size(); j++) {
+                    //	System.out.print("," + j + "=" + A_scores.get(A_keys.get(j)));  
+                    //}
                     
                     for (Object oB : A_keys) {
                         UnaryRule B = (UnaryRule)oB;
                         for (UnaryRule A : grammar.getUnaryRulesByChild(B.getParent())) {
                             double prob = Math.log(A.getScore()) + A_scores.get(B); 
                             if (prob > -1000.0) {
-								
-								if (!A_scores.containsKey(A) || prob > A_scores.get(A)) {
-									//System.out.print(" *A=" + A + ", B=" + B);
-									//System.out.print(",  prob=" +  prob);
-									//System.out.println(",  A_scores.get(A)=" +  A_scores.get(A));
-									A_scores.put(A, prob);
-									backs.get(i).get(i+1).put(A, new Triplet<Integer,Object,Object>(-1, B, null));
-									added = true;
-								}
-								//System.out.println(", added=" + added);
-							}
-							
+                                
+                                if (!A_scores.containsKey(A) || prob > A_scores.get(A)) {
+                                    //System.out.print(" *A=" + A + ", B=" + B);
+                                    //System.out.print(",  prob=" +  prob);
+                                    //System.out.println(",  A_scores.get(A)=" +  A_scores.get(A));
+                                    A_scores.put(A, prob);
+                                    backs.get(i).get(i+1).put(A, new Triplet<Integer,Object,Object>(-1, B, null));
+                                    added = true;
+                                }
+                                //System.out.println(", added=" + added);
+                            }
+                            
                         } 
                     } 
-					//System.out.println(", A_scores=" + A_scores.size() + ", added=" + added);	
+                    //System.out.println(", A_scores=" + A_scores.size() + ", added=" + added);	
                 }
             }
 
