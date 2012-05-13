@@ -22,7 +22,7 @@ class IRSystem:
         self.p = PorterStemmer()
 
     def get_uniq_words(self):
-        return set([word for doc in self.docs for word in doc])
+        return set(word for doc in self.docs for word in doc)
 
     def __read_raw_data(self, dirname):
         print 'Stemming Documents...'
@@ -103,17 +103,15 @@ class IRSystem:
         #       (i.e. write to files in new 'stemmed/' dir).
 
         print 'Reading in documents...'
-        # dict mapping file names to list of "words" (tokens)
-        filenames = os.listdir(dirname)
-        subdirs = os.listdir(dirname)
-        if 'stemmed' in subdirs:
+       
+        if os.path.exists(os.path.join(dirname, 'stemmed')):
             titles, docs = self.__read_stemmed_data(dirname)
         else:
             titles, docs = self.__read_raw_data(dirname)
 
         # Sort document alphabetically by title to ensure we have the proper
         # document indices when referring to them.
-        ordering = [i for i,title in sorted(enumerate(titles),key = lambda (_,v) :v)]
+        ordering = [i for i,title in sorted(enumerate(titles),key = lambda (_,v):v)]
         self.titles = [titles[order] for order in ordering]
         self.docs = [docs[order] for order in ordering]
   
@@ -260,7 +258,7 @@ class IRSystem:
             d_vec = dict((word, self.tfidf[word].get(d,0.0)) for word in query_vec)    
             return sum(query_vec[word] * d_vec[word] for word in d_vec)/self.tfidf_l2norm[d]
         
-        # Computes scores and add to a priority queue
+        # Compute scores and add to a priority queue
         scores = []
         for d in range(len(self.docs)):
             heapq.heappush(scores, (get_score(d), d))
@@ -358,8 +356,7 @@ def run_tests(irsys):
                     if abs(top_rank[1] - float(soln[i][1])) <= epsilon:
                         num_correct += 1
 
-        feedback = '%d/%d Correct. Accuracy: %f' % \
-                (num_correct, num_total, float(num_correct)/num_total)
+        feedback = '%d/%d Correct. Accuracy: %f' % (num_correct, num_total, float(num_correct)/num_total)
         if num_correct == num_total:
             points = 3
         elif num_correct > 0.75 * num_total:
@@ -373,7 +370,7 @@ def run_tests(irsys):
 
 def main(args):
     irsys = IRSystem()
-    irsys.read_data('../data/RiderHaggard')
+    irsys.read_data(os.path.join('..', 'data', 'RiderHaggard'))
     irsys.index()
     irsys.compute_tfidf()
 
