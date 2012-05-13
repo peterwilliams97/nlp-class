@@ -5,6 +5,8 @@ import math
 import os
 import re
 import sys
+import glob
+import heapq
 
 from PorterStemmer import PorterStemmer
 
@@ -20,37 +22,27 @@ class IRSystem:
         self.p = PorterStemmer()
 
     def get_uniq_words(self):
-        uniq = set()
-        for doc in self.docs:
-            for word in doc:
-                uniq.add(word)
-        return uniq
-        #return set([word for doc in self.docs for word in doc])
+        return set([word for doc in self.docs for word in doc])
 
     def __read_raw_data(self, dirname):
         print 'Stemming Documents...'
 
         titles = []
         docs = []
-        os.mkdir('%s/stemmed' % dirname)
-        #re_title = re.compile(r'(.*) \d+\.txt') !@#$
+        os.mkdir(os.path.join(dirname, 'stemmed'))
         re_title = re.compile(r'(.*)\s+\d+\.txt')
 
         # make sure we're only getting the files we actually want
-        filenames = []
-        # filenames = [fn for fn in glob.glob(os.path.join(dirname, 'raw', '*.txt')
-        #       if not os.isdir(fn)] !@#$
-        for filename in os.listdir('%s/raw' % dirname):
-            if filename.endswith('.txt') and not filename.startswith('.'):
-                filenames.append(filename)
+        filenames = [fn for fn in glob.glob(os.path.join(dirname, 'raw', '*.txt'))
+                        if not os.path.isdir(fn)] 
 
         for i, filename in enumerate(filenames):
-            title = re_title.search(filename).group(1)
+            title = re_title.search(os.path.basename(filename)).group(1)
             print '    Doc %d of %d: %s' % (i+1, len(filenames), title)
             titles.append(title)
             contents = []
-            f = open('%s/raw/%s' % (dirname, filename), 'r')
-            of = open('%s/stemmed/%s.txt' % (dirname, title), 'w')
+            f = open(filename, 'r')
+            of = open(os.path.join(dirname, 'stemmed', os.path.basename(filename)), 'w')
             for line in f:
                 # make sure everything is lower case
                 line = line.lower()
@@ -73,36 +65,34 @@ class IRSystem:
         return titles, docs
 
     def __read_stemmed_data(self, dirname):
-        print "Already stemmed!"
+        print 'Already stemmed!'
         titles = []
         docs = []
 
         # make sure we're only getting the files we actually want
-        filenames = []
-        for filename in os.listdir('%s/stemmed' % dirname):
-            if filename.endswith(".txt") and not filename.startswith("."):
-                filenames.append(filename)
+        filenames = [fn for fn in glob.glob(os.path.join(dirname, 'stemmed', '*.txt'))
+                        if not os.path.isdir(fn)]         
 
         if len(filenames) != 60:
-            msg = "There are not 60 documents in ../data/RiderHaggard/stemmed/\n"
-            msg += "Remove ../data/RiderHaggard/stemmed/ directory and re-run."
-            raise Exception(msg)
+            raise Exception(
+                '''There are not 60 documents in ../data/RiderHaggard/stemmed/
+                    Remove ../data/RiderHaggard/stemmed/ directory and re-run.
+                ''')
 
         for i, filename in enumerate(filenames):
-            title = filename.split('.')[0]
+            title = os.path.splitext(os.path.basename(filename))
             titles.append(title)
             contents = []
-            f = open('%s/stemmed/%s' % (dirname, filename), 'r')
+            f = open(filename, 'r')
             for line in f:
                 # split on whitespace
                 line = [xx.strip() for xx in line.split()]
-                # add to the document's conents
+                # add to the document's contents
                 contents.extend(line)
             f.close()
             docs.append(contents)
 
         return titles, docs
-
 
     def read_data(self, dirname):
         """
@@ -112,7 +102,7 @@ class IRSystem:
         # NOTE: We cache stemmed documents for speed
         #       (i.e. write to files in new 'stemmed/' dir).
 
-        print "Reading in documents..."
+        print 'Reading in documents...'
         # dict mapping file names to list of "words" (tokens)
         filenames = os.listdir(dirname)
         subdirs = os.listdir(dirname)
@@ -123,18 +113,12 @@ class IRSystem:
 
         # Sort document alphabetically by title to ensure we have the proper
         # document indices when referring to them.
-        ordering = [idx for idx, title in sorted(enumerate(titles),
-                        key = lambda xx : xx[1])]
-
-        self.titles = []
-        self.docs = []
-        numdocs = len(docs)
-        for d in range(numdocs):
-            self.titles.append(titles[ordering[d]])
-            self.docs.append(docs[ordering[d]])
-
+        ordering = [i for i,title in sorted(enumerate(titles),key = lambda (_,v) :v)]
+        self.titles = [titles[order] for order in ordering]
+        self.docs = [docs[order] for order in ordering]
+  
         # Get the vocabulary.
-        self.vocab = [xx for xx in self.get_uniq_words()]
+        self.vocab = self.get_uniq_words()
 
     def compute_tfidf(self):
         # -------------------------------------------------------------------
@@ -174,9 +158,8 @@ class IRSystem:
         # ------------------------------------------------------------------
         # TODO: Return the tf-idf weighting for the given word (string) and
         #       document index.
-        tfidf = self.tfidf[word][document]
+        return self.tfidf[word][document]
         # ------------------------------------------------------------------
-        return tfidf
 
     def get_tfidf_unstemmed(self, word, document):
         """
@@ -193,7 +176,7 @@ class IRSystem:
         Inverted index is
             word index : title index : list of offsets of word in doc[title index]
         """
-        print "Indexing..."
+        print 'Indexing...'
         # ------------------------------------------------------------------
         # TODO: Create an inverted index.
         #       Granted this may not be a linked list as in a proper
@@ -248,7 +231,7 @@ class IRSystem:
         matches = set([i for i in range(len(self.titles))])
         for word in query:
             matches &= set(self.inv_index[word].keys())
-        return list(matches)   
+        return matches   
         # ------------------------------------------------------------------
 
     def rank_retrieve(self, query):
@@ -277,12 +260,12 @@ class IRSystem:
             d_vec = dict((word, self.tfidf[word].get(d,0.0)) for word in query_vec)    
             return sum(query_vec[word] * d_vec[word] for word in d_vec)/self.tfidf_l2norm[d]
         
-        scores = [get_score(d) for d in range(len(self.docs))]
-     
-        # ------------------------------------------------------------------
-
-        ranking = [i for i,s in sorted(enumerate(scores), key = lambda (k,v) : -v)]
-        return [(rank, scores[rank]) for rank in ranking[:10]]
+        # Computes scores and add to a priority queue
+        scores = []
+        for d in range(len(self.docs)):
+            heapq.heappush(scores, (get_score(d), d))
+        # Return top 10 scores
+        return [(k,v) for v,k in heapq.nlargest(10,scores)]
 
     def process_query(self, query_str):
         """
@@ -324,15 +307,6 @@ def run_tests(irsys):
     ff = open('../data/solutions.txt')
     solutions = [xx.strip() for xx in ff.readlines()]
     ff.close()
-    
-    if False:  # !@#$
-        print 'questions ===' 
-        for i,s in enumerate(questions):
-            print '%2d: %s' % (i, s)
-        print 'solutions ===' 
-        for i,s in enumerate(solutions):
-            print '%2d: %s' % (i, s)
-        exit()
 
     epsilon = 1e-4
     for part in range(4):
@@ -349,8 +323,6 @@ def run_tests(irsys):
             for i, word in enumerate(words):
                 num_total += 1
                 posting = irsys.get_posting_unstemmed(word)
-                #print 'posting', set(posting) !@#$ 
-                #print 'soln[i]', set(soln[i]) 
                 if set(posting) == set(soln[i]):
                     num_correct += 1
 
@@ -360,8 +332,6 @@ def run_tests(irsys):
             for i, query in enumerate(queries):
                 num_total += 1
                 guess = irsys.query_retrieve(query)
-                #print 'guess', set(guess)  
-                #print 'soln[i]', set(soln[i])
                 if set(guess) == set(soln[i]):
                     num_correct += 1
 
@@ -370,7 +340,6 @@ def run_tests(irsys):
             queries = prob.split('; ')
             queries = [xx.split(', ') for xx in queries]
             queries = [(xx[0], int(xx[1])) for xx in queries]
-            #print 'queries', queries  
             for i, (word, doc) in enumerate(queries):
                 num_total += 1
                 guess = irsys.get_tfidf_unstemmed(word, doc)
@@ -400,7 +369,7 @@ def run_tests(irsys):
         else:
             points = 0
 
-        print "    Score: %d Feedback: %s" % (points, feedback)
+        print '    Score: %d Feedback: %s' % (points, feedback)
 
 def main(args):
     irsys = IRSystem()
