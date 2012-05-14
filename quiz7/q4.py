@@ -13,6 +13,6 @@ precisions = [get_precision(n) for n in range(1,N+1)]
 relevant_precisions = [precisions[i] for i in range(N) if results[i]]
 average_precision = sum(relevant_precisions)/len(relevant_precisions)
 
-print 'Average precsion = %.3f' % average_precision
+print 'Average precision = %.3f' % average_precision
     
 

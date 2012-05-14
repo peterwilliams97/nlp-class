@@ -1,7 +1,7 @@
 from __future__ import division
 import math 
 
-def L(x): 
+def log10(x): 
     return math.log(x, 10)
     
 def norm(lst):
@@ -49,13 +49,13 @@ doc_counts = dict((term, sum(1 if counts[doc][term] else 0 for doc in docs)) for
 # N = total number of docs
 N = len(docs)  
 # Inverse doc frequency
-idf = dict((term, L(N) - L(doc_counts[term])) for term in terms)
+idf = dict((term, log10(N) - log10(doc_counts[term])) for term in terms)
 
 print 'N = %d' % N
 print 'doc_counts = %s' % doc_counts
 print 'idf = %s' % idf
 
-def get_tf(count): return 1.0 + L(count) if count else 0.0
+def get_tf(count): return 1.0 + log10(count) if count else 0.0
 
 # Compute tf-idf        
 tfidf = dict(
