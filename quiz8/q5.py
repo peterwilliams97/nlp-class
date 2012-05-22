@@ -40,8 +40,8 @@ Note that answers which are followed by an asterisk are the correct answers to t
 California, Georgia, Massachusetts, Maryland 
 """
 
-x = 1/3 + 1 + 1/4 + 1/4 
-y = 1 + 5/6
+x = (1/3 + 1 + 1/4 + 1/4)/4 
+y = (1 + 5/6)/4
 print '%.2f' % x
 print '%.2f' % y    
      
