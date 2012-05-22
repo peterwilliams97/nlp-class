@@ -9,7 +9,7 @@ _RE_INFO_BOX_WIFE = re.compile(r'\|spouse\s*=.*\[\[(.+)\]\]')
 # Partial map of HTML unicode symbols
 # http://blog.stevenlevithan.com/archives/multi-replace
 # http://scribble-count.com/Ref/ASCII.htm
-_UNIODE_MAP = { 
+_UNICODE_MAP = { 
     'lt'    : '<',
     'gt'    : '>',
     'amp'   : '&',
@@ -27,7 +27,7 @@ _UNIODE_MAP = {
 
 # Add the HTML unicode numerical codes
 # http://www.fileformat.info/info/unicode/char/40/index.htm
-_UNICODE_PATTERNS = _UNIODE_MAP.keys() + ['#x[\da-f]{2,4}', '#\d{2,4}']
+_UNICODE_PATTERNS = _UNICODE_MAP.keys() + ['#x[\da-f]{2,4}', '#\d{2,4}']
 
 # Combine all the uncicode codes into regex
 # We don't need to be comprehensive about this as long as we get @, -, and .
@@ -40,8 +40,8 @@ def convert_unicode(line):
     """Replace all Unicode &(%s); codes with their values"""
     def replacer(m):
         p = m.group(1)
-        if p in _UNIODE_MAP.keys(): 
-            return _UNIODE_MAP[p]
+        if p in _UNICODE_MAP.keys(): 
+            return _UNICODE_MAP[p]
         else:
             n = int(p[2:], 16) if p[1] == 'x' else int(p[1:])
             return chr(n) if n <= 255 else ' '
@@ -144,9 +144,13 @@ _RE_CASE_TITLE = re.compile(r'^[A-Z][a-z]+$')
 def is_title(word):
     return bool(_RE_CASE_TITLE.search(word))
 
-_stop_words = file('stop.words', 'rt').read()  
-_STOP_WORDS_LIST = ' '.join(_stop_words.split('\n')).split()
-_STOP_WORDS_LIST = set([w.strip() for w in _STOP_WORDS_LIST if w.strip()])
+if False:   
+    _stop_words = file('stop.words', 'rt').read()  
+    _STOP_WORDS_LIST = ' '.join(_stop_words.split('\n')).split()
+    _STOP_WORDS_LIST = set([w.strip() for w in _STOP_WORDS_LIST if w.strip()])
+else:
+    _STOP_WORDS_LIST = set(['secondly', 'all', 'consider', 'whoever', 'results', 'four', 'edu', 'go', 'causes', 'seemed', 'rd', 'certainly', "when's", 'vs', 'ts', 'to', 'does', 'present', 'th', 'under', 'sorry', 'promptly', "a's", 'mug', 'sent', 'outside', 'very', 'mg', 'every', 'yourselves', "we'll", 'went', 'did', 'forth', "they've", 'try', 'p', 'shows', 'noted', 'added', "it'll", "i'll", 'says', "you'd", 'd', 'past', 'likely', 'invention', 'further', 'even', 'index', 'what', 'appear', 'giving', 'section', 'brief', 'above', 'sup', 'new', 'poorly', 'ever', "c'mon", 'whose', 'youd', 'respectively', 'never', 'here', 'let', 'others', 'hers', 'along', "aren't", 'suggest', 'obtained', 'ref', 'k', 'allows', 'proud', "i'd", 'resulting', "weren't", 'usually', 'whereupon', "i'm", 'changes', 'thats', 'hither', 'via', 'followed', 'merely', 'put', 'ninety', 'vols', 'viz', 'ord', 'readily', 'everybody', 'use', 'from', 'would', 'contains', 'two', 'next', 'few', 'therefore', 'taken', 'themselves', 'thru', 'until', 'more', 'knows', 'mr', 'becomes', 'hereby', 'it', "ain't", 'particular', 'known', "who'll", 'must', 'me', 'none', 'f', 'this', 'ml', 'oh', 'anywhere', 'nine', 'can', 'theirs', 'following', 'my', 'example', 'indicated', 'give', "didn't", 'near', 'indicates', 'something', 'want', 'arise', 'information', 'needs', 'end', 'rather', 'ie', 'meanwhile', 'makes', 'how', 'instead', 'okay', 'tried', 'may', 'stop', 'after', 'eighty', 'different', 'hereupon', 'ff', 'date', 'such', 'a', 'thered', 'third', 'whenever', 'maybe', 'appreciate', 'q', 'ones', 'so', 'specifying', 'allow', 'keeps', "that's", 'six', 'help', "don't", 'indeed', 'over', 'mainly', 'soon', 'course', 'through', 'looks', 'still', 'its', 'refs', 'before', 'thank', "he's", 'selves', 'inward', 'fix', 'actually', "he'd", 'whether', 'willing', 'thanx', 'ours', 'might', "haven't", 'then', 'them', 'someone', 'somebody', 'thereby', 'auth', "you've", 'they', 'not', 'awfully', 'nor', 'nos', 'several', 'hereafter', 'always', 'reasonably', 'whither', 'l', 'sufficiently', 'each', 'found', 'entirely', "mustn't", "isn't", 'mean', 'everyone', 'significantly', 'doing', 'ed', 'eg', 'related', 'tip', 'owing', 'ex', 'substantially', 'et', 'beyond', 'couldnt', 'out', 'shown', 'furthermore', 'since', 'research', 'looking', 're', 'seriously', "shouldn't", "they'll", 'got', 'cause', 'thereupon', "doesn't", 'million', 'little', 'quite', "what'll", 'que', 'besides', 'x', 'ask', 'anyhow', 'beginning', 'g', 'could', 'similarly', 'tries', 'keep', 'w', 'ltd', 'hence', 'onto', 'think', 'first', 'already', 'seeming', 'omitted', 'thereafter', 'thereof', 'yourself', 'done', 'approximately', 'another', 'miss', "you're", 'given', 'necessarily', 'indicate', 'together', 'accordingly', 'least', 'name', 'anyone', 'their', 'too', 'hundred', 'gives', 'mostly', 'that', 'exactly', 'took', 'immediate', 'regards', 'somewhat', 'off', 'believe', 'herself', 'than', "here's", 'begins', 'b', 'unfortunately', 'showed', 'accordance', 'gotten', 'second', 'nevertheless', 'r', 'were', 'toward', 'anyways', 'and', 'youre', 'ran', 'thoughh', 'beforehand', 'say', 'unlikely', 'have', 'need', 'seen', 'seem', 'saw', 'any', 'relatively', 'zero', 'thoroughly', 'latter', 'able', 'aside', 'thorough', 'predominantly', 'also', 'take', 'which', 'begin', 'nobody', 'unless', 'shall', 'who', "where's", 'most', 'eight', 'amongst', 'significant', 'nothing', 'why', 'sub', 'kg', 'especially', 'noone', 'later', 'm', 'km', 'mrs', 'heres', "you'll", 'definitely', 'normally', 'came', 'saying', 'particularly', 'show', 'anyway', 'ending', "that'll", 'fifth', 'one', 'specifically', 'behind', 'should', 'only', 'going', 'specify', 'announce', 'itd', "there've", 'do', 'his', 'goes', 'get', 'hopefully', 'overall', 'truly', "they'd", 'cannot', 'hid', 'nearly', 'words', 'despite', 'during', 'him', 'regarding', 'qv', 'h', 'twice', 'she', 'contain', "won't", 'where', 'thanks', 'ignored', "hasn't", 'namely', 'sec', 'are', "that've", 'throug', 'best', 'wonder', 'said', 'away', 'currently', 'please', 'ups', 'enough', "there's", 'various', 'between', 'affecting', 'probably', 'neither', 'across', 'available', 'we', 'recently', 'useful', 'importance', 'however', 'meantime', 'come', 'both', 'c', 'last', 'thou', 'many', "wouldn't", 'thence', 'according', 'against', 'etc', 's', 'became', 'com', 'comes', 'otherwise', 'among', 'liked', 'co', 'afterwards', 'seems', 'ca', 'whatever', "hadn't", 'non', "couldn't", 'moreover', 'throughout', 'considering', 'better', 'pp', 'described', "it's", 'three', 'been', 'quickly', 'whom', 'much', 'wherein', 'ah', 'whod', 'hardly', "it'd", 'wants', 'corresponding', 'latterly', "what's", 'else', 'former', 'those', 'myself', 'novel', 'look', 'unlike', 'these', 'means', 'nd', 'thereto', 'value', 'n', 'will', 'while', 'taking', 'theres', 'seven', 'whereafter', 'almost', 'wherever', 'is', 'thus', 'herein', 'cant', 'itself', 'im', 'in', 'affected', 'alone', 'id', 'if', 'containing', 'anymore', 'perhaps', 'insofar', 'make', 'same', 'clearly', 'beside', 'potentially', 'widely', 'gets', 'howbeit', 'used', 'slightly', 'see', 'somewhere', 'upon', 'effect', 'uses', "he'll", 'wheres', 'recent', 'kept', 'whereby', 'largely', 'i', 'whole', 'nonetheless', 'well', 'anybody', 'obviously', 'without', "can't", 'y', 'the', 'yours', 'lest', 'world', "she'll", 'just', 'less', 'being', 'downwards', 'therere', 'presumably', 'greetings', 'immediately', 'regardless', 'yes', 'yet', 'unto', 'now', 'wed', "we've", 'had', 'except', 'thousand', 'lets', 'has', 'adj', 'ought', 'gave', "t's", 'arent', 'around', "who's", 'possible', 'usefully', 'possibly', 'five', 'know', 'using', 'part', 'apart', 'abst', 'nay', 'necessary', 'like', 'follows', 'theyre', 'serious', 'either', 'become', 'page', 'towards', 'therein', "why's", 'shed', 'because', 'old', 'often', 'successfully', 'some', 'somehow', 'self', 'sure', 'shes', 'specified', 'home', "'ve", 'ourselves', "shan't", 'happens', 'vol', "there'll", 'for', 'affects', 'though', 'per', 'everything', 'asking', 'provides', 'tends', 't', 'be', 'run', 'sensible', 'obtain', 'nowhere', 'although', 'by', 'on', 'about', 'ok', 'anything', 'getting', 'of', 'v', 'o', 'whomever', 'whence', 'plus', 'act', 'consequently', 'or', 'seeing', 'own', 'whats', 'formerly', 'previously', 'somethan', 'into', 'within', 'www', 'due', 'down', 'appropriate', 'right', 'primarily', 'theyd', "c's", 'whos', 'your', "how's", 'her', 'hes', 'aren', 'apparently', 'there', 'biol', 'pages', 'hed', 'inasmuch', 'inner', 'way', 'resulted', 'was', 'himself', 'elsewhere', "i've", 'becoming', 'but', 'back', 'hi', 'et-al', 'line', 'trying', 'with', 'he', 'usefulness', "they're", 'made', "wasn't", 'wish', 'j', 'up', 'us', 'tell', 'placed', 'below', 'un', 'whim', 'z', 'similar', "we'd", 'strongly', 'gone', 'sometimes', 'associated', 'certain', 'am', 'an', 'as', 'sometime', 'at', 'our', 'inc', 'again', "'ll", 'no', 'na', 'whereas', 'when', 'lately', 'til', 'other', 'you', 'really', 'concerning', 'showns', 'briefly', 'beginnings', 'welcome', "let's", 'important', "she's", 'e', "she'd", 'having', 'u', "we're", 'far', 'everywhere', 'hello', 'once'])
+
 
 def is_stop_word(w):
    return w.lower() in _STOP_WORDS_LIST
