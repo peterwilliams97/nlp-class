@@ -1,10 +1,29 @@
 import sys, traceback, re, collections
 from pprint import pprint
 
+_NOT_PERSONS = set(['city', 'harbor', 'river', 'county', 'hotel', 'prize', 
+    'married', 'returning', 'pennsylvania', 'baltimore', 'reinstated']) 
+def not_person(words):
+    np = all(w.lower() not in _NOT_PERSONS for w in words)
+    print '^^', np, words
+    return np
+
 _RE_START_INFO_BOX = re.compile(r'\{\{Infobox')
 _RE_END_INFO_BOX = re.compile(r'\}\}')
 _RE_INFO_BOX_NAME = re.compile(r'\|name\s*=\s*(\S.+\S)\s*$')
 _RE_INFO_BOX_WIFE = re.compile(r'\|spouse\s*=.*\[\[(.+)\]\]')
+
+# |spouse = Janice Goldfinger (1970-)
+_RE_INFO_BOX_WIFE2 = re.compile(r'\|spouse\s*=\s*([A-Za-z\s]+)\s*?\(')
+
+if False:
+    line = '|spouse = Janice Goldfinger (1970-)'
+    line = '|spouse        = Susann Margreth Branco (February 6, 1988 &amp;ndash; December 1994 annulled 1997)&lt;br&gt;Elizabeth &quot;Liz&quot; Watson (January 10, 1998 &amp;ndash;)&lt;br&gt;Kimberly Bell|'
+    print line
+    m = _RE_INFO_BOX_WIFE2.search(line)
+    print '= "%s"' % m.group(1)
+    exit()
+
 
 # Partial map of HTML unicode symbols
 # http://blog.stevenlevithan.com/archives/multi-replace
@@ -54,6 +73,8 @@ _RE_MARKUP = re.compile(r'<.*?>')
 
 # Wiki parentheses
 _RE_PARENTHESES = re.compile(r'\(.+?\)')     
+
+_RE_QUOTES = re.compile(r'".+?"')   
   
 def preprocess(line): 
     """Preprocessing that is applied to all text. 
@@ -102,8 +123,11 @@ if False:
                 if m:    
                     self.name = m.group(1)
                 m = _RE_INFO_BOX_WIFE.search(line)
+                if not m:
+                     m = _RE_INFO_BOX_WIFE2.search(line)
                 if m:
-                    self.spouse = m.group(1)
+                    self.spouse = m.group(1).strip()
+                    self.spouse = ' '.join(self.spouse.split())
                 if line.startswith('}}'):
                     in_info_box = False
                     if name and spouse:
@@ -124,26 +148,38 @@ def parse_infobox(f):
                 #print i, 'start info box'
                 continue
         else:
+            if line.startswith('}}'):
+                in_info_box = False
+                #print i, ' end info box', name, wife
+                if name and wife:
+                    yield (name, wife)
             #print '     ', line,
+            line = convert_unicode(line)
+            line = _RE_QUOTES.sub('', line)
             m = _RE_INFO_BOX_NAME.search(line)
             if m:
                 name = m.group(1)
                 #print i, ' wife=', wife, '---',  m.group(0),
                 continue
             m = _RE_INFO_BOX_WIFE.search(line)
+            if not m:
+                m = _RE_INFO_BOX_WIFE2.search(line)
             if m:
-                wife = m.group(1)
-                #print i, ' wife=', wife, '---',  m.group(0),
+                wife = m.group(1).strip()
+                wife = ' '.join(wife.split())
+                print i, ' wife="%s" --- %s' % (wife, m.group(0))
                 continue
-            if line.startswith('}}'):
-                in_info_box = False
-                #print i, ' end info box', name, wife
-                if name and wife:
-                    yield (name, wife)
+            
 
 _RE_CASE_TITLE = re.compile(r'^[A-Z][a-z]+$')
 def is_title(word):
-    return bool(_RE_CASE_TITLE.search(word))
+    title = bool(_RE_CASE_TITLE.search(word)) and (word.lower() not in _NOT_PERSONS) 
+    #if word == 'Pennsylvania':
+    #    print title, word
+    #    exit()
+    return title
+   
+
 
 if False:   
     _stop_words = file('stop.words', 'rt').read()  
@@ -161,6 +197,8 @@ def decode_text(text):
     words = [w for w in words if not is_stop_word(w)]
     persons = []
 
+    is_virginia = 'Virginia' in text
+    #is_virginia = False
     # First extract the person from [[person|other name]]
     start = end = -1
     for i,w in enumerate(words):
@@ -179,9 +217,11 @@ def decode_text(text):
                 end = i+1
                 words[i] = w[:-2]
         if start >= 0 and end >= 0:
-            #print '@@', start, end, words[start:end]
-            if all(is_title(v) for v in words[start:end]):
+            #if is_virginia: print '@@', start, end, words[start:end]; 
+            #if is_virginia: print all([is_title(v) for v in words[start:end]]) 
+            if all([is_title(v) for v in words[start:end]]) and end > start +1:
                 persons.append((start,end))
+            #if is_virginia: exit()
             start = end = -1
     
     # Remove the [[ and ]]
@@ -192,20 +232,26 @@ def decode_text(text):
             words[end-1] = words[end-1][:-2]
             #print '=>', words[end-1] 
 
+    if is_virginia:
+        print persons
+        #exit()
     return words,persons
 
 def get_person_in_range(persons, i0, i1, words):
     """Persons is a list of (start,end) tuples sorted by start
         Return person such that i0 <= start < end <= i1
     """
+    #print 'get_person_in_range(%d, %d)' % (i0, i1)
+    
     # First try the [[]] fields
     for start,end in persons:
         #if start > i1:       return -1, -1
         if i0 <= start and end <= i1:
+            #print '$%$', start, end
             return start,end, 1
             
     do_show = True
-    #print 'get_person_in_range(%d, %d)' % (i0, i1)
+    
     
     # Next 2 consecutive title case words    
     matches = []
@@ -215,14 +261,15 @@ def get_person_in_range(persons, i0, i1, words):
         j1 = i1
         delta = 1
     else:
-        j0 = i1 - 1
-        j1 = i0
+        j0 = i0 
+        j1 = i1 -1
         delta = -1
+    #print '&&', j0, j1, delta    
     for j in range(j0,j1,delta):
         this_is_title = is_title(words[j])
-        if do_show:  print words[j], this_is_title
+        #if do_show:  print words[j], this_is_title
         if last_was_title and this_is_title:
-            return j-1, j+1, 2
+            return j-1, j+1, 2 # if not_person(words[j-1:j+1]) else 10 
         last_was_title = this_is_title
     return -1, -1, 3 
 
@@ -232,26 +279,34 @@ def get_spouses(text):
     #print words
     #print '-' * 80, n
     
-    #do_test = 'Goldfinger' in text
-    #if do_test: print '$$$$'
+    do_test = 'Clemm' in text
+    do_test = False
+    if do_test: print '$$$$', text; 
     
     spouses = []
     def get_person(i0, i1):
-        #print 'get_person(%d, %d) %s' % (i0, i1, words[i0:i1])
+        #if do_test: print 'get_person(%d, %d) %s' % (i0, i1, words[min(i0,i1):max(i0,i1) ])
         start,end,rank = get_person_in_range(persons, i0, i1, words)
+        if start < 0: return None, 100
+        if not all(is_title(w) for w in words[start:end]): return None, 100
         result = ' '.join(words[start:end]) if start >= 0 else None
-        #print '>>>', words[i0:i1], start, end, result 
+        #if do_test: print '>>>', words[i0:i1], start, end, result 
         return result,rank
 
     for i,w in enumerate(words):
         if w.lower() == 'married' or w.lower() == 'marriage':
-            #print '$$', i, w
+            if do_test: print '$$', i, w
             spouse,rank = get_person(i, max(0,i-6))
             if spouse:
                 spouses.append((spouse,rank))
-            spouse,rank = get_person(i, min(i+5,n))
+            spouse,rank = get_person(i, min(i+7,n))
             if spouse:
-                spouses.append((spouse,rank))    
+                spouses.append((spouse,rank)) 
+    if do_test: 
+        print '-' * 80
+        print spouses
+        #exit()
+        print '~' * 80
     return spouses
 
 if False:    
@@ -291,15 +346,18 @@ def find_married_pairs2(f):
         else:
             if '</page>' in line:
                 in_page = False
-                if is_billy:   exit()
+                if is_billy: 
+                    print '=' * 80
+                    #exit()
             else:         
                 if not name:
                     m = _RE_TITLE.search(line)
                     if m:
                         name = m.group(1)
-                        #if name == 'Elvis Presley':
-                        #    print m.group(0)
-                        #    is_billy = True
+                        #if name == 'Edgar Allan Poe':
+                        #   print '*' * 80
+                        #   print m.group(0)
+                        #   is_billy = True
                         continue
                 # Strip the markup
                 line = preprocess(line)        
@@ -313,9 +371,12 @@ def find_married_pairs2(f):
                         if len(spouses) > 1:
                             #print ' ***', spouses
                             pairs.append((spouses[0][0], spouses[1][0], 0))
-                        else:    
-                            spouse,rank = spouses[0]
-                            pairs.append((name,spouse,rank))    
+                        
+                        spouse,rank = spouses[0]
+                        pairs.append((name,spouse,rank))   
+                    if is_billy: 
+                        print pairs[-4:] 
+                        print '=' * 80
     
     return pairs    
 
@@ -340,14 +401,21 @@ class Wiki:
         husbands = [] 
         
         if useInfoBox: 
-            wife_husband_map = dict((wife,name) for name,wife in parse_infobox(f)) 
+            wife_husband_map = dict((wife,name) for name,wife in parse_infobox(f))
+            for wife in wife_husband_map.keys()[:]:
+                parts = wife.split(' ')
+                if len(parts) >= 3:
+                    parts = parts[:-1]
+                    wife2 = ' '.join(parts)
+                    wife_husband_map[wife2] = wife_husband_map[wife]
+           
             #print wife_husband_map
             #exit()
         else:
             pairs = find_married_pairs2(f)
             married_map = {}
             for k,v,r in sorted(pairs):
-                print k,v,r
+                #print k,v,r
                 if k >= 2:
                     married_map[k] = married_map.get(k, []) + [(v,r)]
                 married_map[v] = married_map.get(v, []) + [(k,r)]
@@ -359,7 +427,7 @@ class Wiki:
             def short_wife(wife):
                 return ' '.join(wife.split(' ')[:-1])
             married_map2 = dict((short_wife(k),v) for k,v in married_map.items())
-            pprint(married_map)
+            #pprint(married_map)
 
         # TODO:
         # Process the wiki file and fill the husbands Array
@@ -429,7 +497,7 @@ if __name__ == '__main__':
     wikiFile = '../data/small-wiki.xml'
     wivesFile = '../data/wives.txt'
     goldFile = '../data/gold.txt'
-    useInfoBox = False
+    useInfoBox = True
     wiki = Wiki()
     wives = wiki.addWives(wivesFile)
     husbands = wiki.processFile(open(wikiFile), wives, useInfoBox)
