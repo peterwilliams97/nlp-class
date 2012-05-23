@@ -69,6 +69,7 @@ def preprocess(line):
     # Periods are word boundaries
     line = line.replace('.', ' ')
     line = line.replace(',', ' ')
+    line = line.replace('=', ' ')
     return line
 
 if False:
@@ -165,15 +166,20 @@ def decode_text(text):
     for i,w in enumerate(words):
         if w[:2] == '[[':
             start = i
-            words[i] = w[2:]
+            w = words[i] = w[2:]
+        if w[:7] == '{{main|':
+            start = i
+            w = words[i] = w[7:]
+            #print '~~', w, words[i]
         if start >= 0:    
             if '|' in w:
                 end = i+1
                 words[i] = w.split('|')[0]
-            elif w[-2:] == ']]':
+            elif w[-2:] == ']]' or w[-2:] == '}}':
                 end = i+1
                 words[i] = w[:-2]
         if start >= 0 and end >= 0:
+            #print '@@', start, end, words[start:end]
             if all(is_title(v) for v in words[start:end]):
                 persons.append((start,end))
             start = end = -1
@@ -198,13 +204,21 @@ def get_person_in_range(persons, i0, i1, words):
         if i0 <= start and end <= i1:
             return start,end, 1
             
-    do_show = 'Dunnell' in words
-    if do_show: print '!!!!'
+    do_show = True
+    #print 'get_person_in_range(%d, %d)' % (i0, i1)
     
     # Next 2 consecutive title case words    
     matches = []
     last_was_title = False
-    for j in range(i0+1,i1):
+    if i1 >= i0:
+        j0 = i0 + 1
+        j1 = i1
+        delta = 1
+    else:
+        j0 = i1 - 1
+        j1 = i0
+        delta = -1
+    for j in range(j0,j1,delta):
         this_is_title = is_title(words[j])
         if do_show:  print words[j], this_is_title
         if last_was_title and this_is_title:
@@ -223,23 +237,31 @@ def get_spouses(text):
     
     spouses = []
     def get_person(i0, i1):
+        #print 'get_person(%d, %d) %s' % (i0, i1, words[i0:i1])
         start,end,rank = get_person_in_range(persons, i0, i1, words)
         result = ' '.join(words[start:end]) if start >= 0 else None
-        if 'Dunnell' in words:
-            print '>>>', words[i0:i1], result 
+        #print '>>>', words[i0:i1], start, end, result 
         return result,rank
 
     for i,w in enumerate(words):
-        if w.lower() == 'married':
-            #if do_test: print '@@@@', words[max(0,i-5):min(i+6,n)]
-            spouse,rank = get_person(max(0,i-6), i)
+        if w.lower() == 'married' or w.lower() == 'marriage':
+            #print '$$', i, w
+            spouse,rank = get_person(i, max(0,i-6))
             if spouse:
                 spouses.append((spouse,rank))
-            spouse,rank = get_person(i+1, min(i+6,n))
+            spouse,rank = get_person(i, min(i+5,n))
             if spouse:
                 spouses.append((spouse,rank))    
     return spouses
 
+if False:    
+    text = 'Crystal has been married to Janice Goldfinger  whom he met when he was 18 and she 17  since 1970   They have two daughters  actresses Jennifer and Lindsay  and are now grandparents  They reside in Pacific Palisades  California \n'    
+    text = '   Marriage to Priscilla   \n {{main|Priscilla Presley|Lisa Marie Presley}}\n'
+    print text
+    spouses = get_spouses(text)
+    print spouses
+    exit()
+    
 # Also use [[First Last]]
 #   
 def find_married_pairs(f):
@@ -260,6 +282,7 @@ def find_married_pairs2(f):
     last_lines = collections.deque([''] * 3) 
     name = None
     in_page = False
+    is_billy = False
     for line in f:
         if not in_page:
             if '<page>' in line:
@@ -268,25 +291,32 @@ def find_married_pairs2(f):
         else:
             if '</page>' in line:
                 in_page = False
+                if is_billy:   exit()
             else:         
                 if not name:
                     m = _RE_TITLE.search(line)
                     if m:
                         name = m.group(1)
+                        #if name == 'Elvis Presley':
+                        #    print m.group(0)
+                        #    is_billy = True
                         continue
                 # Strip the markup
                 line = preprocess(line)        
                 last_lines.popleft()
                 last_lines.append(line)
-                if 'married' in last_lines[1].lower():
+                if 'married' in last_lines[1].lower() or 'marriage' in last_lines[1].lower():
+                    if is_billy: print last_lines
                     spouses = get_spouses(''.join(last_lines))
+                    if is_billy: print spouses
                     if spouses:
                         if len(spouses) > 1:
-                            print ' ***', spouses
+                            #print ' ***', spouses
                             pairs.append((spouses[0][0], spouses[1][0], 0))
                         else:    
                             spouse,rank = spouses[0]
                             pairs.append((name,spouse,rank))    
+    
     return pairs    
 
 class Wiki:
