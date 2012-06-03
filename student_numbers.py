@@ -61,7 +61,6 @@ PA8 Jeopardy: Testing Googling 1340 6.00 2.47 1.75
 
 # Use number of students submitting PS's (problem sets) and PA's 
 # (programming assignments) as proxies for participation. 
-# proxy for participation
 weekly_ps = [(int(m.group(1)), int(m.group(2))) for m in re.finditer(r'PS\s*(\d+)\s+(\d+)', summary)]
 weekly_pa = [(int(m.group(1)), int(m.group(2))) for m in re.finditer(r'PA\s*(\d+).+?(\d+)', summary)]
 
