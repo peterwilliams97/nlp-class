@@ -77,7 +77,7 @@ for k,v in weekly_pa:
 pa_numbers = dict((k,sum(v)/len(v)) for k,v in pa_numbers.items())
 
 #
-# Data looks close enough to a power law with week 1 as an outlier
+# Data looks close enough to an exponential decay with week 1 as an outlier
 # So compute a least squares fit of log of all weeks but 1
 #
 
